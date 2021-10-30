@@ -15,36 +15,22 @@
 
 Для сборки использовались `cargo` 1.55.0 (32da73ab1 2021-08-23), `rustc` 1.55.0 (c8dfcfe04 2021-09-06).
 
-Сервер:
-
 ```sh
-cd server
 cargo build
 ```
-
-Клиент:
-
-```sh
-cd client
-cargo build
-```
-
-Советую предварительно запустить `./configure.sh`, чтобы он настроил симлинки на один единый `target/`.
 
 ## Запуск
 
 Сервер:
 
 ```sh
-cd server
-cargo run
+cargo run -p server
 ```
 
 Клиент:
 
 ```sh
-cd client
-cargo run
+cargo run -p client
 ```
 
 Подробности запуска можно прочесть там же, в исходной репе.
