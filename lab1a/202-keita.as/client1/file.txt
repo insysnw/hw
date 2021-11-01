@@ -1,0 +1,6 @@
+# Lab1 TCP-Chat
+
+## Protocol
+
+
+<02:25> 1111111: "At vero eos et accusamus et iusto odio dignissimos ducimus
