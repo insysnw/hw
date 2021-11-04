@@ -9,7 +9,7 @@ HEADER_LENGTH = 10
 SEPARATOR = "<SEPARATOR>"
 SEND_FILE = 2**72
 byteorder = "big"
-
+UID = "84ecf7f7-674a-48c2-b09a-b7c6eea66d75".encode("utf-8")
 IP = "127.0.0.1"
 PORT = 10000
 
@@ -37,7 +37,7 @@ def main():
     try:
         while True:
             message = input()
-            if (re.match("^send .*\.\w*\s*$", message)):
+            if re.match("^send .*\.\w*\s*$", message):
                 try:
                     files = re.findall("\s+\w.*\.\w*\s*", message)
                     fileName = files[0].strip()
@@ -49,6 +49,7 @@ def main():
                     bytes_read = f.read(filesize)
                     clientsocket.sendall(bytes_read)
                     f.close()
+                    clientsocket.send(UID)
                 except:
                     print(f'Невозможно найти файл {fileName}')
 
@@ -81,8 +82,11 @@ def getMessage(clientsocket):
             filename = os.path.basename(filename)
             filesize = int(filesize)
             f = open(filename, "wb")
-            bytes_read = clientsocket.recv(filesize)
-            f.write(bytes_read)
+            total_bytes = bytes()
+            while not UID in total_bytes:
+                bytes_read = clientsocket.recv(filesize)
+                total_bytes += bytes_read
+            f.write(total_bytes[:(len(total_bytes)-len(UID))])
             f.close()
             print(f'<{current_time}> {name} отправляет файл {filename}')
         else:

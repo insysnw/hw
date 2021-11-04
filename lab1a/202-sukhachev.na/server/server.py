@@ -13,6 +13,7 @@ byteorder = "big"
 CONNECT = "CONNECT"
 DISCONNECT = "DISCONNECT"
 CONNECTION = 2**64
+UID = "84ecf7f7-674a-48c2-b09a-b7c6eea66d75".encode("utf-8")
 
 
 def main():
@@ -81,11 +82,14 @@ def getMessage(clientsocket):
             filename, filesize = file_header.decode('utf-8').split(
                 SEPARATOR)
             filesize = int(filesize)
-            bytes_read = clientsocket.recv(filesize)
+            total_bytes = bytes()
+            while not UID in total_bytes:
+                bytes_read = clientsocket.recv(filesize)
+                total_bytes += bytes_read
             return {
                 'sendFile': True,
                 'header': file_header,
-                'data': bytes_read
+                'data': total_bytes
             }
         else:
             return {
