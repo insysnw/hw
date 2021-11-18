@@ -9,10 +9,10 @@ import java.time.format.DateTimeFormatter;
 
 public class UserThread extends Thread {
     private Socket socket;
-    private Server server;
+    private ServerThread server;
     private PrintWriter writer;
 
-    public UserThread(Socket socket, Server server) {
+    public UserThread(Socket socket, ServerThread server) {
         this.server = server;
         this.socket = socket;
     }
@@ -48,7 +48,7 @@ public class UserThread extends Thread {
             server.broadcast(serverMessage, this);
 
         } catch (IOException e) {
-            System.out.println("Error in UserThread : " + e.getMessage());
+            System.out.println("Error in UserThread: " + e.getMessage());
             e.printStackTrace();
         }
     }

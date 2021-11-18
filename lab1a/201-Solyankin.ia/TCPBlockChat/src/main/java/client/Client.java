@@ -3,28 +3,28 @@ package client;
 import threads.ReadThread;
 import threads.WriteThread;
 
-import java.io.BufferedReader;
-import java.io.Console;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
 
 public class Client {
     private String host;
     private int port;
     private String userName;
+    private final Scanner scanner;
 
     public Client(String host, int port) {
         this.port = port;
         this.host = host;
-
+        this.scanner = new Scanner(System.in, StandardCharsets.UTF_8);
     }
 
     public void start() {
         try {
             System.out.println("Enter your name: ");
-            String userName = new BufferedReader(new InputStreamReader(System.in)).readLine();
+            String userName = scanner.nextLine();
             setUserName(userName);
 
             Socket socket = new Socket(host, port);
