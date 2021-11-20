@@ -1,6 +1,7 @@
 package threads;
 
 import client.User;
+import server.Server;
 
 import java.io.*;
 import java.net.Socket;
@@ -10,10 +11,10 @@ import java.time.format.DateTimeFormatter;
 public class UserThread extends Thread {
     private User user;
     private DataInputStream input;
-    private ServerThread server;
+    private Server server;
     private DataOutputStream output;
 
-    public UserThread(User user, DataInputStream input, DataOutputStream output, ServerThread server) {
+    public UserThread(User user, DataInputStream input, DataOutputStream output, Server server) {
         this.user = user;
         this.input = input;
         this.output = output;
@@ -43,6 +44,7 @@ public class UserThread extends Thread {
                     server.broadcast(serverMessage, this);
                     System.out.println(getMessageDescription(userName) + clientMessages);
                 } else {
+                    output.writeUTF(clientMessages);
                     break;
                 }
             }

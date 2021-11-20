@@ -54,20 +54,6 @@ public class Client {
         }
     }
 
-    private void closeThread() {
-        try {
-            if (!socket.isClosed()) {
-                output.close();
-                input.close();
-                socket.close();
-            }
-        } catch (IOException e) {
-            System.out.println("Error closing WriteThread: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(-1);
-        }
-    }
-
     private class WriteThread extends Thread {
 
         @Override
@@ -81,6 +67,7 @@ public class Client {
                         output.writeUTF(text);
                         if (text.toLowerCase().trim().equals("/quit")) {
                             closeThread();
+                            interrupt();
                             System.exit(-1);
                             break;
                         }
@@ -90,6 +77,7 @@ public class Client {
                     System.out.println("Error while sending message: " + e.getMessage());
                     e.printStackTrace();
                     closeThread();
+                    interrupt();
                     System.exit(-1);
                 }
             }
@@ -118,6 +106,7 @@ public class Client {
                     if (response.toLowerCase().trim().equals("/quit")) {
                         System.out.println("Server closed");
                         closeThread();
+                        interrupt();
                         System.exit(-1);
                         break;
                     } else {
@@ -127,6 +116,7 @@ public class Client {
                     System.out.println("Error while reading message: " + e.getMessage());
                     e.printStackTrace();
                     closeThread();
+                    interrupt();
                     System.exit(-1);
                     break;
                 }
@@ -139,5 +129,18 @@ public class Client {
             System.out.println(("\n<" + dateTimeFormatter.format(now) + ">" + text).trim());
         }
     }
-}
 
+    private void closeThread() {
+        try {
+            if (!socket.isClosed()) {
+                output.close();
+                input.close();
+                socket.close();
+            }
+        } catch (IOException e) {
+            System.out.println("Error closing WriteThread: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+}

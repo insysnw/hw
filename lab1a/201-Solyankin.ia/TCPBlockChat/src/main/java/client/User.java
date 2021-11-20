@@ -1,10 +1,6 @@
 package client;
 
-import java.net.Socket;
-import java.util.Objects;
-
 public class User {
-//    private Socket socket;
     private String userName;
     private boolean nameStatus;
 

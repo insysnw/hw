@@ -47,9 +47,9 @@ public class ServerThread extends Thread {
                     }
                 } while (!user.getNameStatus());
 
-                UserThread newUser = new UserThread(user, input, output, this);
-                userThreads.add(newUser);
-                newUser.start();
+//                UserThread newUser = new UserThread(user, input, output, this);
+//                userThreads.add(newUser);
+//                newUser.start();
 
 
             } catch (IOException e) {
