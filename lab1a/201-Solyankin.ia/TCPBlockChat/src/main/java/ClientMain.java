@@ -2,7 +2,7 @@ import client.Client;
 
 public class ClientMain {
     private static Integer port = 8888;
-    private static String host = "localhost";
+    private static String host = "0.0.0.0";
 
     public static void main(String[] args) {
         if (args.length != 2) {

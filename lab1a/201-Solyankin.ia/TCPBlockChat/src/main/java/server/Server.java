@@ -20,7 +20,6 @@ public class Server {
         try {
             ServerSocket server = new ServerSocket(port, MAX_CONNECTIONS, InetAddress.getByName(host));
             System.out.println("Chat server is listening on port " + port);
-
             ServerThread serverThread = new ServerThread(server);
             serverThread.start();
 

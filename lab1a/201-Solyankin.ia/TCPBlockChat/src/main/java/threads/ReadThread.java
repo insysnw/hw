@@ -1,64 +1,58 @@
 package threads;
 
-import client.Client;
+import client.User;
 
-import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.Socket;
 import java.net.SocketException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 public class ReadThread extends Thread {
-    private BufferedReader reader;
-    private Socket socket;
-    private Client client;
+    private DataInputStream reader;
+    private User user;
 
-    public ReadThread(Socket socket, Client client) {
-        this.client = client;
-        this.socket = socket;
-
-        try {
-            InputStream input = socket.getInputStream();
-            reader = new BufferedReader(new InputStreamReader(input));
-        } catch (IOException ex) {
-            System.out.println("Error getting input stream: " + ex.getMessage());
-            ex.printStackTrace();
-        }
-    }
-
-    public void run() {
-        while (true) {
-            try {
-                String response = reader.readLine();
-                if (response == null) break;
-                System.out.println(("\n" + getMessageDescription() + response).trim());
-//                if (chatClient.getUserName() != null) {
-//                    System.out.print(getMessageDescription(chatClient.getUserName()));
+//    public ReadThread(User user) throws IOException {
+//        this.user = user;
+//        reader = new DataInputStream(user.getSocket().getInputStream());
+//    }
+//
+//    public void run() {
+//        while (isAlive()) {
+//            if (!user.getSocket().isClosed()){
+//                try {
+//                    String response = reader.readUTF();
+//                    sendMessage(response);
+//                } catch (IOException e) {
+//                    System.out.println("Error while reading message: " + e.getMessage());
+//                    e.printStackTrace();
+//                    break;
 //                }
-            } catch (SocketException e) {
-                System.out.println(e.getMessage());
-                break;
-            } catch (IOException ex) {
-                System.out.println("Error reading from server: " + ex.getMessage());
-                ex.printStackTrace();
-                break;
-            }
-        }
-    }
+//            } else {
+//                closeReadThread();
+//                break;
+//            }
+//        }
+//    }
 
-    private String getMessageDescription() {
+    private void sendMessage(String text) {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
         LocalDateTime now = LocalDateTime.now();
-        return "<" + dateTimeFormatter.format(now) + ">";
+        System.out.println(("\n<" + dateTimeFormatter.format(now) + ">" + text).trim());
     }
 
-    private String getMessageDescription(String userName) {
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        LocalDateTime now = LocalDateTime.now();
-        return "<" + dateTimeFormatter.format(now) + ">" + "[" + userName + "]: ";
-    }
+//    private void closeReadThread() {
+//        try {
+//            reader.close();
+//            user.getSocket().close();
+//        } catch (IOException e) {
+//            System.out.println("Error closing ReadThread: " + e.getMessage());
+//            e.printStackTrace();
+//        }
+//        interrupt();
+//    }
 }
 

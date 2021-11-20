@@ -1,6 +1,6 @@
 package threads;
 
-import server.Server;
+import client.User;
 
 import java.io.*;
 import java.net.Socket;
@@ -8,42 +8,47 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class UserThread extends Thread {
-    private Socket socket;
+    private User user;
+    private DataInputStream input;
     private ServerThread server;
-    private PrintWriter writer;
+    private DataOutputStream output;
 
-    public UserThread(Socket socket, ServerThread server) {
+    public UserThread(User user, DataInputStream input, DataOutputStream output, ServerThread server) {
+        this.user = user;
+        this.input = input;
+        this.output = output;
         this.server = server;
-        this.socket = socket;
+    }
+
+    public static String time() {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        LocalDateTime now = LocalDateTime.now();
+        return dateTimeFormatter.format(now);
     }
 
     @Override
     public void run() {
         try {
-            InputStream inputStream = socket.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
-            OutputStream outputStream = socket.getOutputStream();
-            writer = new PrintWriter(outputStream, true);
-
-            String userName = reader.readLine();
-            server.addUserName(userName);
+            String userName = user.getUserName();
 
             String serverMessage = "New user connected: " + userName;
             server.broadcast(serverMessage, this);
 
-            String clientMessages;
+            String clientMessages = "";
 
-            do {
-                clientMessages = reader.readLine();
-                if (clientMessages == null) break;
-                serverMessage = "[" + userName + "]: " + clientMessages;
-                server.broadcast(serverMessage, this);
-                System.out.println(getMessageDescription(userName) + clientMessages);
-            } while (!clientMessages.equals("bye"));
+            while (true) {
+                clientMessages = input.readUTF();
+                if (!clientMessages.trim().toLowerCase().equals("/quit")) {
+                    serverMessage = "[" + userName + "]: " + clientMessages;
+                    server.broadcast(serverMessage, this);
+                    System.out.println(getMessageDescription(userName) + clientMessages);
+                } else {
+                    break;
+                }
+            }
 
             server.removeUser(userName, this);
-            socket.close();
+
             serverMessage = userName + " has quited.";
             server.broadcast(serverMessage, this);
 
@@ -54,8 +59,8 @@ public class UserThread extends Thread {
     }
 
 
-    public void sendMessage(String message) {
-        writer.println(message);
+    public void sendMessage(String message) throws IOException {
+        output.writeUTF(message);
     }
 
     private String getMessageDescription(String userName) {
