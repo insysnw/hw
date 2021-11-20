@@ -12,7 +12,7 @@ public class ClientMain {
             port = Integer.valueOf(args[1]);
         }
 
-        System.out.println("Starting client... " + host + ":" + port);
+        System.out.println("Starting client...\nAttempting to connect to the server: " + host + ":" + port);
         Client client = new Client(host, port);
         client.start();
     }

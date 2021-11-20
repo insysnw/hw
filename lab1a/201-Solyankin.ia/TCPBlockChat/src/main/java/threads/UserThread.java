@@ -3,71 +3,83 @@ package threads;
 import client.User;
 import server.Server;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class UserThread extends Thread {
-    private User user;
-    private DataInputStream input;
     private Server server;
+    private DataInputStream input;
     private DataOutputStream output;
+    private String userName;
 
-    public UserThread(User user, DataInputStream input, DataOutputStream output, Server server) {
-        this.user = user;
-        this.input = input;
-        this.output = output;
-        this.server = server;
-    }
-
-    public static String time() {
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        LocalDateTime now = LocalDateTime.now();
-        return dateTimeFormatter.format(now);
+    public UserThread(Socket socket, Server server) {
+        try {
+            this.input = new DataInputStream(socket.getInputStream());
+            this.output = new DataOutputStream(socket.getOutputStream());
+            this.server = server;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void run() {
         try {
-            String userName = user.getUserName();
-
-            String serverMessage = "New user connected: " + userName;
-            server.broadcast(serverMessage, this);
-
-            String clientMessages = "";
+            User user = new User(null, false);
+            do {
+                userName = input.readUTF();
+                if (!server.getUserNames().contains(userName)) {
+                    user = new User(userName, true);
+                    server.putUserNames(userName);
+                    server.putUserThreads(this);
+                    String welcomeMessage = userName + " has joined";
+                    System.out.println(welcomeMessage);
+                    server.broadcast(userName + " joined", this);
+                } else {
+                    output.writeUTF("Server Connect failed, name already exist");
+                }
+            } while (!user.getNameStatus());
 
             while (true) {
-                clientMessages = input.readUTF();
+                String clientMessages = input.readUTF();
+                String serverMessage;
                 if (!clientMessages.trim().toLowerCase().equals("/quit")) {
-                    serverMessage = "[" + userName + "]: " + clientMessages;
+                    serverMessage = userName + " " + clientMessages;
                     server.broadcast(serverMessage, this);
-                    System.out.println(getMessageDescription(userName) + clientMessages);
+                    String message = String.format("<%s>[%s]: %s", getCurrentTime(), userName, clientMessages);
+                    System.out.println(message);
                 } else {
                     output.writeUTF(clientMessages);
+                    server.removeUser(userName, this);
+                    System.out.println(userName + " has quited");
+                    serverMessage = userName + " has quited";
+                    server.broadcast(serverMessage, this);
                     break;
                 }
             }
-
-            server.removeUser(userName, this);
-
-            serverMessage = userName + " has quited.";
-            server.broadcast(serverMessage, this);
-
         } catch (IOException e) {
-            System.out.println("Error in UserThread: " + e.getMessage());
+            System.out.println(userName + " urgently quited");
+            server.removeUser(userName, this);
+            server.broadcast(userName + " has quited", this);
+        }
+    }
+
+    public void sendMessage(String message) {
+        try {
+            output.writeUTF(message);
+        } catch (IOException e) {
+            System.out.println("Error while send message" + e.getMessage());
             e.printStackTrace();
         }
     }
 
-
-    public void sendMessage(String message) throws IOException {
-        output.writeUTF(message);
-    }
-
-    private String getMessageDescription(String userName) {
+    private static String getCurrentTime() {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
         LocalDateTime now = LocalDateTime.now();
-        return "<" + dateTimeFormatter.format(now) + ">" + "[" + userName + "]: ";
+        return dateTimeFormatter.format(now);
     }
 }

@@ -4,7 +4,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
@@ -26,7 +25,6 @@ public class Client {
     public void start() {
         try {
             scanner = new Scanner(System.in);
-
             socket = new Socket(host, port);
             System.out.println("Connected to the chat server");
 
@@ -34,8 +32,25 @@ public class Client {
             input = new DataInputStream(socket.getInputStream());
             output = new DataOutputStream(socket.getOutputStream());
 
-            WriteThread write = new WriteThread();
-            ReadThread read = new ReadThread();
+            System.out.println("Enter your name: ");
+            while (!user.getNameStatus()) {
+                String userName = scanner.nextLine();
+                try {
+                    output.writeUTF(userName);
+                    String response = input.readUTF();
+                    readMessage(response);
+                    if (response.equals(userName + " joined")) {
+                        user.setNameStatus(true);
+                    }
+                } catch (IOException e) {
+                    System.out.println("Error while sending message: server closed");
+                    closeThread();
+                    System.exit(-1);
+                }
+            }
+
+            SendMessageThread write = new SendMessageThread();
+            ReceiveMessageThread read = new ReceiveMessageThread();
 
             write.start();
             read.start();
@@ -47,19 +62,26 @@ public class Client {
                     break;
                 }
             }
-        } catch (UnknownHostException e) {
-            System.out.println("Server not found: " + e.getMessage());
         } catch (IOException e) {
-            System.out.println("I/O Error: " + e.getMessage());
+            System.out.println("Server not found");
         }
     }
 
-    private class WriteThread extends Thread {
+    private void readMessage(String response) {
+        String[] partsMessage = response.split(" ", 2);
+        String message = String.format("<%s>[%s]: %s", getCurrentTime(), partsMessage[0], partsMessage[1]);
+        System.out.println(message);
+    }
 
+    private String getCurrentTime() {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        LocalDateTime now = LocalDateTime.now();
+        return dateTimeFormatter.format(now);
+    }
+
+    private class SendMessageThread extends Thread {
         @Override
         public void run() {
-            enterName();
-
             while (true) {
                 try {
                     String text = scanner.nextLine();
@@ -82,51 +104,31 @@ public class Client {
                 }
             }
         }
-
-        private void enterName() {
-            System.out.println("Enter your name: ");
-            while (!user.getNameStatus()) {
-                String userName = scanner.nextLine();
-                try {
-                    output.writeUTF(userName);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
     }
 
-    private class ReadThread extends Thread {
-
+    private class ReceiveMessageThread extends Thread {
         @Override
         public void run() {
             while (true) {
                 try {
                     String response = input.readUTF(); // Add receive file
                     if (response.toLowerCase().trim().equals("/quit")) {
-                        System.out.println("Server closed");
+                        System.out.println("Client closed");
                         closeThread();
                         interrupt();
                         System.exit(-1);
                         break;
                     } else {
-                        sendMessage(response);
+                        readMessage(response);
                     }
                 } catch (IOException e) {
-                    System.out.println("Error while reading message: " + e.getMessage());
-                    e.printStackTrace();
+                    System.out.println("Server closed");
                     closeThread();
                     interrupt();
                     System.exit(-1);
                     break;
                 }
             }
-        }
-
-        private void sendMessage(String text) {
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-            LocalDateTime now = LocalDateTime.now();
-            System.out.println(("\n<" + dateTimeFormatter.format(now) + ">" + text).trim());
         }
     }
 
@@ -138,7 +140,7 @@ public class Client {
                 socket.close();
             }
         } catch (IOException e) {
-            System.out.println("Error closing WriteThread: " + e.getMessage());
+            System.out.println("Error closing SendMessageThread: " + e.getMessage());
             e.printStackTrace();
             System.exit(-1);
         }
