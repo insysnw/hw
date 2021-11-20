@@ -1,7 +1,6 @@
 package threads;
 
 import client.User;
-import server.Server;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,12 +10,12 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class UserThread extends Thread {
-    private Server server;
+    private ServerThread server;
     private DataInputStream input;
     private DataOutputStream output;
     private String userName;
 
-    public UserThread(Socket socket, Server server) {
+    public UserThread(Socket socket, ServerThread server) {
         try {
             this.input = new DataInputStream(socket.getInputStream());
             this.output = new DataOutputStream(socket.getOutputStream());
@@ -81,5 +80,16 @@ public class UserThread extends Thread {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
         LocalDateTime now = LocalDateTime.now();
         return dateTimeFormatter.format(now);
+    }
+
+    public void closeUserThread() {
+        try {
+            input.close();
+            output.close();
+            interrupt();
+        } catch (IOException e) {
+            System.out.println("Error while closing userThread: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
