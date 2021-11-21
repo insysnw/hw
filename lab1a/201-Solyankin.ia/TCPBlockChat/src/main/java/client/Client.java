@@ -8,6 +8,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Client {
     private String host;
@@ -17,8 +19,6 @@ public class Client {
     private Socket socket;
     private DataInputStream input;
     private DataOutputStream output;
-
-    private final String FILE_PATH = "E:\\Programming\\IdeaProjects\\hw\\lab1a\\201-Solyankin.ia\\TCPBlockChat\\files";
 
     public Client(String host, int port) {
         this.port = port;
@@ -59,17 +59,31 @@ public class Client {
         System.out.println("Enter your name: ");
         while (!user.getNameStatus()) {
             String userName = scanner.nextLine();
-            try {
-                output.writeUTF(userName);
-                String response = input.readUTF();
-                readMessage(response);
-                user.setUserName(userName);
-                user.setNameStatus(true);
-            } catch (IOException e) {
-                System.out.println("Error while entering name: server closed");
-                closeSocket();
-                System.exit(-1);
+            if (userNameIsSuitable(userName)) {
+                try {
+                    output.writeUTF(userName);
+                    String response = input.readUTF();
+                    readMessage(response);
+                    user.setUserName(userName);
+                    user.setNameStatus(true);
+                } catch (IOException e) {
+                    System.out.println("Error while entering name: server closed");
+                    closeSocket();
+                    System.exit(-1);
+                }
             }
+        }
+    }
+
+    private boolean userNameIsSuitable(String userName) {
+        String regex = "[A-Za-z0-9\\n\\r\\t]*";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(userName);
+        if (matcher.matches()){
+            return true;
+        } else {
+            readMessage("Client Incorrect UserName. You can use only letters(A-z) and numbers(0-9)");
+            return false;
         }
     }
 
@@ -80,15 +94,7 @@ public class Client {
                 try {
                     String message = scanner.nextLine();
                     if (message.split(" ", 2)[0].equals("/file")) {
-                        File file = new File(message.split(" ", 2)[1]);
-                        if (file.exists() && !file.isDirectory()) {
-                            byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
-                            output.writeUTF("/file " + fileBytes.length + " " + file.getName());
-                            output.flush();
-                            sendFileClient(fileBytes);
-                        } else {
-                            System.out.println("Invalid file");
-                        }
+                        sendFile(message.split(" ", 2)[1]);
                     } else {
                         output.writeUTF(message);
                         if (message.toLowerCase().trim().equals("/quit")) {
@@ -106,13 +112,21 @@ public class Client {
             }
         }
 
-        private void sendFileClient(byte[] fileBytes) {
-            try {
-                output.write(fileBytes);
-                readMessage("Server File sending( " + fileBytes.length + " bytes)");
+        private void sendFile(String message) throws IOException {
+            File file = new File(message);
+            if (file.exists() && !file.isDirectory()) {
+                byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
+                output.writeUTF("/file " + fileBytes.length + " " + file.getName());
                 output.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
+                try {
+                    output.write(fileBytes);
+                    readMessage("Server File sending( " + fileBytes.length + " bytes)");
+                    output.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("Invalid file");
             }
         }
     }
@@ -124,16 +138,7 @@ public class Client {
                 try {
                     String response = input.readUTF();
                     if (response.contains("Sent the file:")) {
-                        readMessage(response);
-                        String[] words = response.split(" ");
-                        String fileName = words[4];
-                        String fileBytesLength = words[6];
-                        byte[] fileBytes = new byte[Integer.parseInt(fileBytesLength)];
-                        for (int i = 0; i < fileBytes.length; i++) {
-                            byte aByte = input.readByte();
-                            fileBytes[i] = aByte;
-                        }
-                        receiveFileClient(fileName, fileBytes);
+                        receiveFile(response);
                     } else {
                         if (response.toLowerCase().trim().equals("/stop") || !socket.isConnected()) {
                             System.out.println("Server closed");
@@ -152,7 +157,25 @@ public class Client {
             }
         }
 
-        private void receiveFileClient(String fileName, byte[] bytes) {
+        private void receiveFile(String response) throws IOException {
+            readMessage(response);
+            String[] words = response.split(" ");
+            int count = 4;
+            StringBuilder fileName = new StringBuilder();
+            while (!words[count].equals("(")) {
+                fileName.append(words[count]).append(" ");
+                count++;
+            }
+            String fileBytesLength = words[++count];
+            byte[] fileBytes = new byte[Integer.parseInt(fileBytesLength)];
+            for (int i = 0; i < fileBytes.length; i++) {
+                byte aByte = input.readByte();
+                fileBytes[i] = aByte;
+            }
+            saveFile(fileName.toString().trim(), fileBytes);
+        }
+
+        private void saveFile(String fileName, byte[] bytes) {
             String directoryPath = createDirectory();
             File file = new File(directoryPath + File.separator + fileName);
             try {
@@ -173,7 +196,8 @@ public class Client {
         }
 
         private String createDirectory() {
-            File directory = new File(FILE_PATH + File.separator + user.getUserName());
+            File directory = new File(System.getProperty("user.home") + File.separator +
+                    "Desktop" + File.separator + user.getUserName());
             if (!directory.exists()) {
                 if (directory.mkdir()) {
                     readMessage("Client Directory created: " + directory.getAbsolutePath());

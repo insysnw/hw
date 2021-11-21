@@ -29,33 +29,13 @@ public class UserThread extends Thread {
     public void run() {
         try {
             User user = new User(null, false);
-            while (!user.getNameStatus()) {
-                userName = input.readUTF();
-                if (!server.getUserNames().contains(userName)) {
-                    user = new User(userName, true);
-                    server.putUserNames(userName);
-                    server.putUserThreads(this);
-                    System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "joined"));
-                    server.broadcast(userName + " joined");
-                } else {
-                    output.writeUTF("Server Connect failed, name already exist");
-                }
-            }
+            gettingUserName(user);
 
             while (true) {
                 String clientMessages = input.readUTF();
                 if (!clientMessages.trim().toLowerCase().equals("/quit")) {
                     if (clientMessages.split(" ", 3)[0].equals("/file")) {
-                        String byteLength = clientMessages.split(" ", 3)[1];
-                        String fileName = clientMessages.split(" ", 3)[2];
-                        byte[] fileBytes = new byte[Integer.parseInt(byteLength)];
-                        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "Sent file: " + fileName));
-                        for (int i = 0; i < fileBytes.length; i++) {
-                            byte aByte = input.readByte();
-                            fileBytes[i] = aByte;
-                        }
-                        server.broadcast(userName + " Sent the file: " + fileName + " ( " + fileBytes.length + " bytes)");
-                        server.broadcastBytes(fileBytes);
+                        fileProcessing(clientMessages);
                     } else {
                         server.broadcast(userName + " " + clientMessages);
                         String message = String.format("<%s>[%s]: %s", getCurrentTime(), userName, clientMessages);
@@ -73,6 +53,34 @@ public class UserThread extends Thread {
             server.removeUser(userName, this);
         }
 
+    }
+
+    private void gettingUserName(User user) throws IOException {
+        while (!user.getNameStatus()) {
+            userName = input.readUTF();
+            if (!server.getUserNames().contains(userName)) {
+                user = new User(userName, true);
+                server.putUserNames(userName);
+                server.putUserThreads(this);
+                System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "joined"));
+                server.broadcast(userName + " joined");
+            } else {
+                output.writeUTF("Server Connect failed, name already exist");
+            }
+        }
+    }
+
+    private void fileProcessing(String clientMessages) throws IOException {
+        String byteLength = clientMessages.split(" ", 3)[1];
+        String fileName = clientMessages.split(" ", 3)[2];
+        byte[] fileBytes = new byte[Integer.parseInt(byteLength)];
+        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "Sent file: " + fileName));
+        for (int i = 0; i < fileBytes.length; i++) {
+            byte aByte = input.readByte();
+            fileBytes[i] = aByte;
+        }
+        server.broadcast(userName + " Sent the file: " + fileName + " ( " + fileBytes.length + " bytes)");
+        server.broadcastBytes(fileBytes);
     }
 
     public void sendMessage(String message) {
