@@ -25,17 +25,20 @@ public class ServerThread extends Thread {
                 Socket socket = server.accept();
                 UserThread newUser = new UserThread(socket, this);
                 newUser.start();
-            } catch (IOException e) {
-                System.out.println("Server stopped");
+            } catch (IOException ignored) {
             }
         }
     }
 
-    public void broadcast(String message, UserThread excludeUser) {
+    public void broadcast(String message) {
         for (UserThread user : userThreads) {
-//            if (user != excludeUser) {
             user.sendMessage(message);
-//            }
+        }
+    }
+
+    public void broadcastBytes(byte[] bytes) {
+        for (UserThread user : userThreads) {
+            user.sendBytes(bytes);
         }
     }
 
@@ -61,12 +64,19 @@ public class ServerThread extends Thread {
     public void closeServerThread() {
         try {
             userNames.clear();
-            for (UserThread userThread: userThreads){
+            for (UserThread userThread : userThreads) {
+                userThread.sendMessage("/stop");
                 userThread.closeUserThread();
+                try {
+                    userThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
             userThreads.clear();
             server.close();
-            interrupt();
+            System.out.println("Server stopped");
+            System.exit(-1);
         } catch (IOException e) {
             e.printStackTrace();
         }

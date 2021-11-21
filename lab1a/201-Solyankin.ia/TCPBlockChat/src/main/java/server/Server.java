@@ -38,22 +38,18 @@ public class Server {
         Scanner scanner = new Scanner(System.in);
         if (scanner.hasNext()) {
             String text = scanner.nextLine();
-            try {
-                if (text.trim().length() > 0) {
-                    switch (text) {
-                        case "/exit":
-                            serverThread.closeServerThread();
-                            break;
-                        case "/users":
-                            System.out.println(serverThread.getUserNames());
-                            break;
-//                        case USERS:
-//                            System.out.println(serverThread.getUsers().keySet());
-//                            break;
-                    }
+            if (text.trim().length() > 0) {
+                switch (text) {
+                    case "/stop":
+                        serverThread.closeServerThread();
+                        break;
+                    case "/users":
+                        System.out.println(serverThread.getUserNames());
+                        break;
+                    default:
+                        System.out.println("Incorrect command");
+                        break;
                 }
-            } catch (IllegalArgumentException e) {
-                System.out.println("Incorrect command");
             }
         }
     }

@@ -1,9 +1,10 @@
 package client;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
@@ -17,37 +18,24 @@ public class Client {
     private DataInputStream input;
     private DataOutputStream output;
 
+    private final String FILE_PATH = "E:\\Programming\\IdeaProjects\\hw\\lab1a\\201-Solyankin.ia\\TCPBlockChat\\files";
+
     public Client(String host, int port) {
         this.port = port;
         this.host = host;
+        scanner = new Scanner(System.in, StandardCharsets.UTF_8);
+        user = new User(null, false);
     }
 
     public void start() {
         try {
-            scanner = new Scanner(System.in);
             socket = new Socket(host, port);
             System.out.println("Connected to the chat server");
 
-            user = new User(null, false);
             input = new DataInputStream(socket.getInputStream());
             output = new DataOutputStream(socket.getOutputStream());
 
-            System.out.println("Enter your name: ");
-            while (!user.getNameStatus()) {
-                String userName = scanner.nextLine();
-                try {
-                    output.writeUTF(userName);
-                    String response = input.readUTF();
-                    readMessage(response);
-                    if (response.equals(userName + " joined")) {
-                        user.setNameStatus(true);
-                    }
-                } catch (IOException e) {
-                    System.out.println("Error while sending message: server closed");
-                    closeThread();
-                    System.exit(-1);
-                }
-            }
+            enteringName();
 
             SendMessageThread write = new SendMessageThread();
             ReceiveMessageThread read = new ReceiveMessageThread();
@@ -67,16 +55,22 @@ public class Client {
         }
     }
 
-    private void readMessage(String response) {
-        String[] partsMessage = response.split(" ", 2);
-        String message = String.format("<%s>[%s]: %s", getCurrentTime(), partsMessage[0], partsMessage[1]);
-        System.out.println(message);
-    }
-
-    private String getCurrentTime() {
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        LocalDateTime now = LocalDateTime.now();
-        return dateTimeFormatter.format(now);
+    private void enteringName() {
+        System.out.println("Enter your name: ");
+        while (!user.getNameStatus()) {
+            String userName = scanner.nextLine();
+            try {
+                output.writeUTF(userName);
+                String response = input.readUTF();
+                readMessage(response);
+                user.setUserName(userName);
+                user.setNameStatus(true);
+            } catch (IOException e) {
+                System.out.println("Error while entering name: server closed");
+                closeSocket();
+                System.exit(-1);
+            }
+        }
     }
 
     private class SendMessageThread extends Thread {
@@ -84,13 +78,21 @@ public class Client {
         public void run() {
             while (true) {
                 try {
-                    String text = scanner.nextLine();
-                    if (text != null) { // Add sending file
-                        output.writeUTF(text);
-                        if (text.toLowerCase().trim().equals("/quit")) {
-                            closeThread();
-                            interrupt();
-                            System.exit(-1);
+                    String message = scanner.nextLine();
+                    if (message.split(" ", 2)[0].equals("/file")) {
+                        File file = new File(message.split(" ", 2)[1]);
+                        if (file.exists() && !file.isDirectory()) {
+                            byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
+                            output.writeUTF("/file " + fileBytes.length + " " + file.getName());
+                            output.flush();
+                            sendFileClient(fileBytes);
+                        } else {
+                            System.out.println("Invalid file");
+                        }
+                    } else {
+                        output.writeUTF(message);
+                        if (message.toLowerCase().trim().equals("/quit")) {
+                            closeSocket();
                             break;
                         }
                         output.flush();
@@ -98,10 +100,19 @@ public class Client {
                 } catch (IOException e) {
                     System.out.println("Error while sending message: " + e.getMessage());
                     e.printStackTrace();
-                    closeThread();
-                    interrupt();
+                    closeSocket();
                     System.exit(-1);
                 }
+            }
+        }
+
+        private void sendFileClient(byte[] fileBytes) {
+            try {
+                output.write(fileBytes);
+                readMessage("Server File sending( " + fileBytes.length + " bytes)");
+                output.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -111,28 +122,76 @@ public class Client {
         public void run() {
             while (true) {
                 try {
-                    String response = input.readUTF(); // Add receive file
-                    if (response.toLowerCase().trim().equals("/quit")) {
-                        System.out.println("Client closed");
-                        closeThread();
-                        interrupt();
-                        System.exit(-1);
-                        break;
-                    } else {
+                    String response = input.readUTF();
+                    if (response.contains("Sent the file:")) {
                         readMessage(response);
+                        String[] words = response.split(" ");
+                        String fileName = words[4];
+                        String fileBytesLength = words[6];
+                        byte[] fileBytes = new byte[Integer.parseInt(fileBytesLength)];
+                        for (int i = 0; i < fileBytes.length; i++) {
+                            byte aByte = input.readByte();
+                            fileBytes[i] = aByte;
+                        }
+                        receiveFileClient(fileName, fileBytes);
+                    } else {
+                        if (response.toLowerCase().trim().equals("/stop") || !socket.isConnected()) {
+                            System.out.println("Server closed");
+                            closeSocket();
+                            System.exit(-1);
+                            break;
+                        } else {
+                            readMessage(response);
+                        }
                     }
                 } catch (IOException e) {
-                    System.out.println("Server closed");
-                    closeThread();
-                    interrupt();
+                    System.out.println("Client closed");
                     System.exit(-1);
                     break;
                 }
             }
         }
+
+        private void receiveFileClient(String fileName, byte[] bytes) {
+            String directoryPath = createDirectory();
+            File file = new File(directoryPath + File.separator + fileName);
+            try {
+                if (file.createNewFile()) {
+                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+                    fileOutputStream.write(bytes);
+                    fileOutputStream.close();
+                    readMessage("Client File saved: " + fileName);
+                } else {
+                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+                    fileOutputStream.write(bytes);
+                    fileOutputStream.close();
+                    readMessage("Client File overwriting: " + fileName);
+                }
+            } catch (IOException exception) {
+                exception.printStackTrace();
+            }
+        }
+
+        private String createDirectory() {
+            File directory = new File(FILE_PATH + File.separator + user.getUserName());
+            if (!directory.exists()) {
+                if (directory.mkdir()) {
+                    readMessage("Client Directory created: " + directory.getAbsolutePath());
+                }
+            }
+            return directory.getAbsolutePath();
+        }
     }
 
-    private void closeThread() {
+    private void readMessage(String response) {
+        String[] partsMessage = response.split(" ", 2);
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        LocalDateTime now = LocalDateTime.now();
+        String message = String.format("<%s>[%s]: %s", dateTimeFormatter.format(now), partsMessage[0], partsMessage[1]);
+        System.out.println(message);
+    }
+
+    private void closeSocket() {
         try {
             if (!socket.isClosed()) {
                 output.close();

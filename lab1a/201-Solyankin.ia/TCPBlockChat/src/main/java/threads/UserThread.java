@@ -29,49 +29,66 @@ public class UserThread extends Thread {
     public void run() {
         try {
             User user = new User(null, false);
-            do {
+            while (!user.getNameStatus()) {
                 userName = input.readUTF();
                 if (!server.getUserNames().contains(userName)) {
                     user = new User(userName, true);
                     server.putUserNames(userName);
                     server.putUserThreads(this);
-                    String welcomeMessage = userName + " has joined";
-                    System.out.println(welcomeMessage);
-                    server.broadcast(userName + " joined", this);
+                    System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "joined"));
+                    server.broadcast(userName + " joined");
                 } else {
                     output.writeUTF("Server Connect failed, name already exist");
                 }
-            } while (!user.getNameStatus());
+            }
 
             while (true) {
                 String clientMessages = input.readUTF();
-                String serverMessage;
                 if (!clientMessages.trim().toLowerCase().equals("/quit")) {
-                    serverMessage = userName + " " + clientMessages;
-                    server.broadcast(serverMessage, this);
-                    String message = String.format("<%s>[%s]: %s", getCurrentTime(), userName, clientMessages);
-                    System.out.println(message);
+                    if (clientMessages.split(" ", 3)[0].equals("/file")) {
+                        String byteLength = clientMessages.split(" ", 3)[1];
+                        String fileName = clientMessages.split(" ", 3)[2];
+                        byte[] fileBytes = new byte[Integer.parseInt(byteLength)];
+                        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "Sent file: " + fileName));
+                        for (int i = 0; i < fileBytes.length; i++) {
+                            byte aByte = input.readByte();
+                            fileBytes[i] = aByte;
+                        }
+                        server.broadcast(userName + " Sent the file: " + fileName + " ( " + fileBytes.length + " bytes)");
+                        server.broadcastBytes(fileBytes);
+                    } else {
+                        server.broadcast(userName + " " + clientMessages);
+                        String message = String.format("<%s>[%s]: %s", getCurrentTime(), userName, clientMessages);
+                        System.out.println(message);
+                    }
                 } else {
-                    output.writeUTF(clientMessages);
                     server.removeUser(userName, this);
-                    System.out.println(userName + " has quited");
-                    serverMessage = userName + " has quited";
-                    server.broadcast(serverMessage, this);
+                    System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "quited"));
+                    server.broadcast(userName + " quited");
                     break;
                 }
             }
         } catch (IOException e) {
-            System.out.println(userName + " urgently quited");
+            System.out.println(userName + " quited");
             server.removeUser(userName, this);
-            server.broadcast(userName + " has quited", this);
         }
+
     }
 
     public void sendMessage(String message) {
         try {
             output.writeUTF(message);
         } catch (IOException e) {
-            System.out.println("Error while send message" + e.getMessage());
+            System.out.println("Error while send message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void sendBytes(byte[] bytes) {
+        try {
+            output.write(bytes);
+        } catch (IOException e) {
+            System.out.println("Error while send message: " + e.getMessage());
             e.printStackTrace();
         }
     }
