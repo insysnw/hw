@@ -36,6 +36,7 @@ public enum Phrases {
     CLIENT_ENTER_NAME_ERROR("Error while entering name: server closed"),
     CLIENT_INCORRECT_NAME_ERROR("Client Incorrect UserName. You can use only letters(A-z) and numbers(0-9)"),
     CLIENT_INVALID_FILE_ERROR("Invalid file"),
+    CLIENT_INVALID_FILE_SIZE("File size exceeded (5MB)"),
     CLIENT_CLOSE_SENDMESSAGETHREAD_ERROR("Error closing SendMessageThread: "),
 
     //Command phrases

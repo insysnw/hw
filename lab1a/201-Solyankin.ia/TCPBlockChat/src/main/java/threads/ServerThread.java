@@ -69,11 +69,6 @@ public class ServerThread extends Thread {
             for (UserThread userThread : userThreads) {
                 userThread.sendMessage(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase());
                 userThread.closeUserThread();
-                try {
-                    userThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             }
             userThreads.clear();
             server.close();

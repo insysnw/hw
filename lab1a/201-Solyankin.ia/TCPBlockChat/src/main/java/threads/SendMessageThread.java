@@ -47,19 +47,23 @@ public class SendMessageThread extends Thread {
 
     private void sendFile(String message) throws IOException {
         File file = new File(message);
-        if (file.exists() && !file.isDirectory()) {
-            byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
-            output.writeUTF(Phrases.CLIENT_COMMAND_FILE.getPhrase() + " " + fileBytes.length + " " + file.getName());
-            output.flush();
-            try {
-                output.write(fileBytes);
-                client.readMessage(Phrases.CLIENT_FILE_SENDING.getPhrase() + fileBytes.length + " bytes)");
-                output.flush();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if (file.length() > 5*1024*1024){
+            System.out.println(Phrases.CLIENT_INVALID_FILE_SIZE.getPhrase());
         } else {
-            System.out.println(Phrases.CLIENT_INVALID_FILE_ERROR.getPhrase());
+            if (file.exists() && !file.isDirectory()) {
+                byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
+                output.writeUTF(Phrases.CLIENT_COMMAND_FILE.getPhrase() + " " + fileBytes.length + " " + file.getName());
+                output.flush();
+                try {
+                    output.write(fileBytes);
+                    client.readMessage(Phrases.CLIENT_FILE_SENDING.getPhrase() + fileBytes.length + " bytes)");
+                    output.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println(Phrases.CLIENT_INVALID_FILE_ERROR.getPhrase());
+            }
         }
     }
 }

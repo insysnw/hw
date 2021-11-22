@@ -52,6 +52,7 @@ public class UserThread extends Thread {
         } catch (IOException e) {
             System.out.println(userName + Phrases.USER_QUITED.getPhrase());
             server.removeUser(userName, this);
+            server.broadcast(userName + Phrases.USER_QUITED.getPhrase());
         }
 
     }
