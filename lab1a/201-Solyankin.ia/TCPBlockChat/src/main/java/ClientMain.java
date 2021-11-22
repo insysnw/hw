@@ -1,4 +1,5 @@
 import client.Client;
+import resources.Phrases;
 
 public class ClientMain {
     private static Integer port = 8888;
@@ -6,13 +7,13 @@ public class ClientMain {
 
     public static void main(String[] args) {
         if (args.length != 2) {
-            System.out.println("HOST and PORT are not provided, using default");
+            System.out.println(Phrases.DEFAULT_HOST_AND_PORT.getPhrase());
         } else {
             host = args[0];
             port = Integer.valueOf(args[1]);
         }
 
-        System.out.println("Starting client...\nAttempting to connect to the server: " + host + ":" + port);
+        System.out.println(Phrases.CLIENT_STARTING.getPhrase() + host + ":" + port);
         Client client = new Client(host, port);
         client.start();
     }

@@ -1,5 +1,7 @@
 package threads;
 
+import resources.Phrases;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -65,7 +67,7 @@ public class ServerThread extends Thread {
         try {
             userNames.clear();
             for (UserThread userThread : userThreads) {
-                userThread.sendMessage("/stop");
+                userThread.sendMessage(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase());
                 userThread.closeUserThread();
                 try {
                     userThread.join();
@@ -75,7 +77,7 @@ public class ServerThread extends Thread {
             }
             userThreads.clear();
             server.close();
-            System.out.println("Server stopped");
+            System.out.println(Phrases.SERVER_STOPPED.getPhrase());
             System.exit(-1);
         } catch (IOException e) {
             e.printStackTrace();

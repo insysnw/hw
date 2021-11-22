@@ -1,5 +1,6 @@
 package server;
 
+import resources.Phrases;
 import threads.ServerThread;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class Server {
     public void start() {
         try {
             ServerSocket server = new ServerSocket(port, MAX_CONNECTIONS, InetAddress.getByName(host));
-            System.out.println("Chat server is listening on port " + port);
+            System.out.println(Phrases.SERVER_WELCOME.getPhrase() + port);
             serverThread = new ServerThread(server);
             serverThread.start();
 
@@ -29,7 +30,7 @@ public class Server {
                 readCommand();
             }
         } catch (IOException e) {
-            System.out.println("Error while creating ServerSocket: " + e.getMessage());
+            System.out.println(Phrases.SERVER_WELCOME_ERROR.getPhrase() + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -39,15 +40,16 @@ public class Server {
         if (scanner.hasNext()) {
             String text = scanner.nextLine();
             if (text.trim().length() > 0) {
-                switch (text) {
-                    case "/stop":
+                Phrases phrase = Phrases.fromString(text);
+                switch (phrase) {
+                    case SERVER_COMMAND_STOP_SERVER:
                         serverThread.closeServerThread();
                         break;
-                    case "/users":
+                    case SERVER_COMMAND_SHOW_USERS:
                         System.out.println(serverThread.getUserNames());
                         break;
-                    default:
-                        System.out.println("Incorrect command");
+                    case SERVER_INCORRECT_COMMAND_ERROR:
+                        System.out.println(Phrases.SERVER_INCORRECT_COMMAND_ERROR.getPhrase());
                         break;
                 }
             }

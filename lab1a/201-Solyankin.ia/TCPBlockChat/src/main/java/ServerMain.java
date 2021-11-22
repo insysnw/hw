@@ -1,3 +1,4 @@
+import resources.Phrases;
 import server.Server;
 
 public class ServerMain {
@@ -6,13 +7,13 @@ public class ServerMain {
 
     public static void main(String[] args) {
         if (args.length != 2) {
-            System.out.println("HOST and PORT are not provided, using default");
+            System.out.println(Phrases.DEFAULT_HOST_AND_PORT.getPhrase());
         } else {
             host = args[0];
             port = Integer.valueOf(args[1]);
         }
 
-        System.out.println("Starting server on " + host + ":" + port);
+        System.out.println(Phrases.SERVER_STARTING.getPhrase() + host + ":" + port);
         Server server = new Server(host, port);
         server.start();
     }

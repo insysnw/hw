@@ -1,6 +1,7 @@
 package threads;
 
 import client.User;
+import resources.Phrases;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -33,8 +34,8 @@ public class UserThread extends Thread {
 
             while (true) {
                 String clientMessages = input.readUTF();
-                if (!clientMessages.trim().toLowerCase().equals("/quit")) {
-                    if (clientMessages.split(" ", 3)[0].equals("/file")) {
+                if (!clientMessages.trim().toLowerCase().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
+                    if (clientMessages.split(" ", 3)[0].equals(Phrases.CLIENT_COMMAND_FILE.getPhrase())) {
                         fileProcessing(clientMessages);
                     } else {
                         server.broadcast(userName + " " + clientMessages);
@@ -43,13 +44,13 @@ public class UserThread extends Thread {
                     }
                 } else {
                     server.removeUser(userName, this);
-                    System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "quited"));
-                    server.broadcast(userName + " quited");
+                    System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), userName, Phrases.USER_QUITED.getPhrase()));
+                    server.broadcast(userName + Phrases.USER_QUITED.getPhrase());
                     break;
                 }
             }
         } catch (IOException e) {
-            System.out.println(userName + " quited");
+            System.out.println(userName + Phrases.USER_QUITED.getPhrase());
             server.removeUser(userName, this);
         }
 
@@ -62,10 +63,10 @@ public class UserThread extends Thread {
                 user = new User(userName, true);
                 server.putUserNames(userName);
                 server.putUserThreads(this);
-                System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "joined"));
-                server.broadcast(userName + " joined");
+                System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), userName, Phrases.USER_JOINED.getPhrase()));
+                server.broadcast(userName + Phrases.USER_JOINED.getPhrase());
             } else {
-                output.writeUTF("Server Connect failed, name already exist");
+                output.writeUTF(Phrases.SERVER_CONNECT_ERROR.getPhrase());
             }
         }
     }
@@ -74,12 +75,12 @@ public class UserThread extends Thread {
         String byteLength = clientMessages.split(" ", 3)[1];
         String fileName = clientMessages.split(" ", 3)[2];
         byte[] fileBytes = new byte[Integer.parseInt(byteLength)];
-        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, "Sent file: " + fileName));
+        System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), userName, Phrases.SEND_FILE.getPhrase() + fileName));
         for (int i = 0; i < fileBytes.length; i++) {
             byte aByte = input.readByte();
             fileBytes[i] = aByte;
         }
-        server.broadcast(userName + " Sent the file: " + fileName + " ( " + fileBytes.length + " bytes)");
+        server.broadcast(userName + " " + Phrases.SEND_FILE.getPhrase() + fileName + " ( " + fileBytes.length + " bytes)");
         server.broadcastBytes(fileBytes);
     }
 
@@ -87,7 +88,7 @@ public class UserThread extends Thread {
         try {
             output.writeUTF(message);
         } catch (IOException e) {
-            System.out.println("Error while send message: " + e.getMessage());
+            System.out.println(Phrases.SEND_MESSAGE_ERROR.getPhrase() + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -96,7 +97,7 @@ public class UserThread extends Thread {
         try {
             output.write(bytes);
         } catch (IOException e) {
-            System.out.println("Error while send message: " + e.getMessage());
+            System.out.println(Phrases.SERVER_SEND_BYTES_ERROR.getPhrase() + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -113,7 +114,7 @@ public class UserThread extends Thread {
             output.close();
             interrupt();
         } catch (IOException e) {
-            System.out.println("Error while closing userThread: " + e.getMessage());
+            System.out.println(Phrases.SERVER_CLOSE_USERTHREAD_ERROR.getPhrase() + e.getMessage());
             e.printStackTrace();
         }
     }
