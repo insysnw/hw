@@ -65,14 +65,14 @@ public class ServerThread extends Thread {
 
     public void closeServerThread() {
         try {
-            userNames.clear();
             for (UserThread userThread : userThreads) {
                 userThread.sendMessage(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase());
                 userThread.closeUserThread();
             }
+            System.out.println(Phrases.SERVER_STOPPED.getPhrase());
+            userNames.clear();
             userThreads.clear();
             server.close();
-            System.out.println(Phrases.SERVER_STOPPED.getPhrase());
             System.exit(-1);
         } catch (IOException e) {
             e.printStackTrace();

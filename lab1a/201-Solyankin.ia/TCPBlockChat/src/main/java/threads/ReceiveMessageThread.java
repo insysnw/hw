@@ -32,7 +32,8 @@ public class ReceiveMessageThread extends Thread {
                     receiveFile(response);
                 } else {
                     if (response.toLowerCase().trim().equals(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase()) || !socket.isConnected()) {
-                        System.out.println(Phrases.CLIENT_SERVER_CLOSED.getPhrase());
+                        System.out.println(Phrases.SERVER_STOPPED.getPhrase());
+                        System.out.println(Phrases.CLIENT_CLOSED.getPhrase());
                         client.closeSocket();
                         System.exit(-1);
                         break;

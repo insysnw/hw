@@ -12,12 +12,14 @@ import java.time.format.DateTimeFormatter;
 
 public class UserThread extends Thread {
     private ServerThread server;
+    private Socket socket;
     private DataInputStream input;
     private DataOutputStream output;
     private String userName;
 
     public UserThread(Socket socket, ServerThread server) {
         try {
+            this.socket = socket;
             this.input = new DataInputStream(socket.getInputStream());
             this.output = new DataOutputStream(socket.getOutputStream());
             this.server = server;
@@ -54,7 +56,6 @@ public class UserThread extends Thread {
             server.removeUser(userName, this);
             server.broadcast(userName + Phrases.USER_QUITED.getPhrase());
         }
-
     }
 
     private void gettingUserName(User user) throws IOException {
@@ -76,7 +77,7 @@ public class UserThread extends Thread {
         String byteLength = clientMessages.split(" ", 3)[1];
         String fileName = clientMessages.split(" ", 3)[2];
         byte[] fileBytes = new byte[Integer.parseInt(byteLength)];
-        System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), userName, Phrases.SEND_FILE.getPhrase() + fileName));
+        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, Phrases.SEND_FILE.getPhrase() + fileName));
         for (int i = 0; i < fileBytes.length; i++) {
             byte aByte = input.readByte();
             fileBytes[i] = aByte;
@@ -86,20 +87,24 @@ public class UserThread extends Thread {
     }
 
     public void sendMessage(String message) {
-        try {
-            output.writeUTF(message);
-        } catch (IOException e) {
-            System.out.println(Phrases.SEND_MESSAGE_ERROR.getPhrase() + e.getMessage());
-            e.printStackTrace();
+        if (!socket.isClosed()) {
+            try {
+                output.writeUTF(message);
+            } catch (IOException e) {
+                System.out.println(Phrases.SEND_MESSAGE_ERROR.getPhrase() + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 
     public void sendBytes(byte[] bytes) {
-        try {
-            output.write(bytes);
-        } catch (IOException e) {
-            System.out.println(Phrases.SERVER_SEND_BYTES_ERROR.getPhrase() + e.getMessage());
-            e.printStackTrace();
+        if (!socket.isClosed()) {
+            try {
+                output.write(bytes);
+            } catch (IOException e) {
+                System.out.println(Phrases.SERVER_SEND_BYTES_ERROR.getPhrase() + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 

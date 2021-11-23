@@ -47,7 +47,7 @@ public class SendMessageThread extends Thread {
 
     private void sendFile(String message) throws IOException {
         File file = new File(message);
-        if (file.length() > 5*1024*1024){
+        if (file.length() > 5 * 1024 * 1024) {
             System.out.println(Phrases.CLIENT_INVALID_FILE_SIZE.getPhrase());
         } else {
             if (file.exists() && !file.isDirectory()) {

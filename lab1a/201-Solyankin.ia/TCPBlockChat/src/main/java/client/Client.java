@@ -68,8 +68,10 @@ public class Client {
                     output.writeUTF(userName);
                     String response = input.readUTF();
                     readMessage(response);
-                    user.setUserName(userName);
-                    user.setNameStatus(true);
+                    if (!response.equals(Phrases.SERVER_CONNECT_ERROR.getPhrase())) {
+                        user.setUserName(userName);
+                        user.setNameStatus(true);
+                    }
                 } catch (IOException e) {
                     System.out.println(Phrases.CLIENT_ENTER_NAME_ERROR.getPhrase());
                     closeSocket();
