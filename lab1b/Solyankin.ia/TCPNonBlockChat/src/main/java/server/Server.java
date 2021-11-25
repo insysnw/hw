@@ -4,34 +4,36 @@ import resources.Phrases;
 import threads.ServerThread;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.ServerSocket;
+import java.net.InetSocketAddress;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.util.Scanner;
 
 public class Server {
-    private final static int MAX_CONNECTIONS = 1024;
-    private String host;
     private ServerThread serverThread;
-    private int port;
+    private final String host;
+    private final int port;
 
     public Server(String host, int port) {
         this.port = port;
         this.host = host;
     }
 
-    public void start() {
-        try {
-            ServerSocket server = new ServerSocket(port, MAX_CONNECTIONS, InetAddress.getByName(host));
-            System.out.println(Phrases.SERVER_WELCOME.getPhrase() + port);
-            serverThread = new ServerThread(server);
-            serverThread.start();
+    public void start() throws IOException {
+        ServerSocketChannel server = ServerSocketChannel.open();
+        server.configureBlocking(false);
+        server.socket().bind(new InetSocketAddress(host, port));
+        Selector selector = Selector.open();
+        server.register(selector, SelectionKey.OP_ACCEPT);
 
-            while (!serverThread.isInterrupted()) {
-                readCommand();
-            }
-        } catch (IOException e) {
-            System.out.println(Phrases.SERVER_WELCOME_ERROR.getPhrase() + e.getMessage());
-            e.printStackTrace();
+        System.out.println(Phrases.SERVER_WELCOME.getPhrase() + port);
+
+        serverThread = new ServerThread(server, selector);
+        serverThread.start();
+
+        while (!serverThread.isInterrupted()) {
+            readCommand();
         }
     }
 

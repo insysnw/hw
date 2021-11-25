@@ -1,17 +1,18 @@
 package client;
 
 import resources.Phrases;
-import threads.ReceiveMessageThread;
-import threads.SendMessageThread;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Scanner;
+import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,39 +20,52 @@ public class Client {
     private String host;
     private int port;
     private User user;
-    private Scanner scanner;
-    private Socket socket;
-    private DataInputStream input;
-    private DataOutputStream output;
+    private BufferedReader reader;
+    private Selector selector;
+    private SocketChannel socketChannel;
+    private ByteBuffer buffer;
+    private String userName;
 
     public Client(String host, int port) {
         this.port = port;
         this.host = host;
-        scanner = new Scanner(System.in, StandardCharsets.UTF_8);
+        reader = new BufferedReader(new InputStreamReader(System.in));
         user = new User(null, false);
+        buffer = ByteBuffer.allocate(1024);
     }
 
     public void start() {
         try {
-            socket = new Socket(host, port);
+            initial();
             System.out.println(Phrases.CLIENT_WELCOME.getPhrase());
 
-            input = new DataInputStream(socket.getInputStream());
-            output = new DataOutputStream(socket.getOutputStream());
-
-            enteringName();
-
-            SendMessageThread write = new SendMessageThread(this, scanner, output);
-            ReceiveMessageThread read = new ReceiveMessageThread(this, user, socket, input);
-
-            write.start();
-            read.start();
-
             while (true) {
-                if (socket.isClosed()) {
-                    write.interrupt();
-                    read.interrupt();
-                    break;
+                selector.select(100);
+                Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+
+                while (keys.hasNext()) {
+                    SelectionKey key = keys.next();
+                    keys.remove();
+
+                    if (!key.isValid()) {
+                        System.out.println("Not valid");
+                        continue;
+                    }
+
+                    if (key.isConnectable()) {
+                        System.out.println("connect");
+                        connect(key);
+                    }
+
+                    if (key.isReadable()) {
+                        System.out.println("read");
+                        read(key);
+                    }
+
+                    if (key.isWritable()) {
+                        System.out.println("write");
+                        write(key);
+                    }
                 }
             }
         } catch (IOException e) {
@@ -59,23 +73,77 @@ public class Client {
         }
     }
 
-    private void enteringName() {
-        System.out.println(Phrases.CLIENT_ENTER_NAME.getPhrase());
-        while (!user.getNameStatus()) {
-            String userName = scanner.nextLine();
-            if (userNameIsSuitable(userName)) {
-                try {
-                    output.writeUTF(userName);
-                    String response = input.readUTF();
-                    readMessage(response);
+    private void initial() throws IOException {
+        selector = Selector.open();
+        socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(false);
+        socketChannel.connect(new InetSocketAddress(host, port));
+        socketChannel.register(selector, SelectionKey.OP_CONNECT);
+    }
+
+    private void connect(SelectionKey key) throws IOException {
+        SocketChannel channel = (SocketChannel) key.channel();
+        if (channel.isConnectionPending()) {
+            channel.finishConnect();
+        }
+        channel.configureBlocking(false);
+        channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+    }
+
+    private void read(SelectionKey key) {
+        SocketChannel channel = (SocketChannel) key.channel();
+        if (!user.getNameStatus()) {
+            try {
+                channel.read(buffer);
+                String response = new String(buffer.array());
+                System.out.println(response);
+                readMessage(response);
+                if (!response.equals(Phrases.SERVER_CONNECT_ERROR.getPhrase())) {
                     user.setUserName(userName);
                     user.setNameStatus(true);
-                } catch (IOException e) {
-                    System.out.println(Phrases.CLIENT_ENTER_NAME_ERROR.getPhrase());
-                    closeSocket();
-                    System.exit(-1);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        key.interestOps(SelectionKey.OP_READ);
+    }
+
+    private void write(SelectionKey key) {
+        try {
+            SocketChannel channel = (SocketChannel) key.channel();
+            buffer = ByteBuffer.allocate(1024);
+            buffer.clear();
+
+            if (!user.getNameStatus()) {
+                enterUserName();
+                buffer = ByteBuffer.wrap((userName.trim()).getBytes());
+                channel.write(buffer);
+            } else {
+
+            }
+            key.interestOps(SelectionKey.OP_READ);
+        } catch (IOException e) {
+            readMessage("Client " + Phrases.SEND_MESSAGE_ERROR.getPhrase());
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
+
+    private void enterUserName() {
+        try {
+            System.out.println(Phrases.CLIENT_ENTER_NAME.getPhrase());
+            userName = reader.readLine();
+            boolean availableUserName = false;
+            while (!availableUserName) {
+                if (userNameIsSuitable(userName)) {
+                    availableUserName = true;
+                } else {
+                    userName = reader.readLine();
                 }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -97,19 +165,5 @@ public class Client {
         LocalDateTime now = LocalDateTime.now();
         String message = String.format("<%s>[%s]: %s", dateTimeFormatter.format(now), partsMessage[0], partsMessage[1]);
         System.out.println(message);
-    }
-
-    public void closeSocket() {
-        try {
-            if (!socket.isClosed()) {
-                output.close();
-                input.close();
-                socket.close();
-            }
-        } catch (IOException e) {
-            System.out.println(Phrases.CLIENT_CLOSE_SENDMESSAGETHREAD_ERROR.getPhrase() + e.getMessage());
-            e.printStackTrace();
-            System.exit(-1);
-        }
     }
 }
