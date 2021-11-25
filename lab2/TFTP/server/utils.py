@@ -22,16 +22,16 @@ ERR_MESSAGE = {
 }
 
 
-def getDataPacket(block_num, data):
-    num_bytes = block_num.to_bytes(2, 'big')
-    data_bytes = DATA + num_bytes + data
-    return data_bytes
+def getDataPacket(blockNumber, data):
+    bytesNumber = blockNumber.to_bytes(2, 'big')
+    bytesData = DATA + bytesNumber + data
+    return bytesData
 
 
-def getAcknowledgePacket(block_num):
-    num_bytes = block_num.to_bytes(2, 'big')
-    ack_bytes = ACK + num_bytes
-    return ack_bytes
+def getAcknowledgePacket(blockNumber):
+    bytesNumber = blockNumber.to_bytes(2, 'big')
+    bytesAcknowledge = ACK + bytesNumber
+    return bytesAcknowledge
 
 
 def getErrorPacket(type):
