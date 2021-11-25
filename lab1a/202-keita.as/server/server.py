@@ -27,6 +27,17 @@ def broadcast(message, _client):
 
 # Handling Messages From Clients
 def handle(client):
+
+    # Request And Store Nickname
+    client.send('NICK'.encode(FORMAT))
+    nickname = client.recv(SIZE).decode(FORMAT)
+    nicknames.append(nickname)
+    clients.append(client)
+
+    # Print And Broadcast Nickname
+    print("Nickname is {}".format(nickname))
+    broadcast("{} joined!".format(nickname).encode(FORMAT), client)
+    client.send('Connected to server!'.encode(FORMAT))
     while True:
         try:
             # Broadcasting Messages
@@ -49,19 +60,6 @@ def receive():
         # Accept Connection
         client, address = server.accept()
         print("Connected with {}".format(str(address)))
-
-        # Request And Store Nickname
-        client.send('NICK'.encode(FORMAT))
-        nickname = client.recv(SIZE).decode(FORMAT)
-        nicknames.append(nickname)
-        clients.append(client)
-
-        # Print And Broadcast Nickname
-        print("Nickname is {}".format(nickname))
-        broadcast("{} joined!".format(nickname).encode(FORMAT), client)
-        client.send('Connected to server!'.encode(FORMAT))
-
-        # Start Handling Thread For Client
         thread = threading.Thread(target=handle, args=(client,))
         thread.start()
 
