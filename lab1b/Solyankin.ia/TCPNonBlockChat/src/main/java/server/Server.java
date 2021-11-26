@@ -26,7 +26,6 @@ public class Server {
         server.socket().bind(new InetSocketAddress(host, port));
         Selector selector = Selector.open();
         server.register(selector, SelectionKey.OP_ACCEPT);
-
         System.out.println(Phrases.SERVER_WELCOME.getPhrase() + port);
 
         serverThread = new ServerThread(server, selector);
