@@ -38,6 +38,7 @@ public enum Phrases {
     CLIENT_INVALID_FILE_ERROR("Invalid file"),
     CLIENT_INVALID_FILE_SIZE("File size exceeded (5MB)"),
     CLIENT_CLOSE_SENDMESSAGETHREAD_ERROR("Error closing SendMessageThread: "),
+    CLIENT_EMPTY_MESSAGE_ERROR("Client The message must not be empty"),
 
     //Command phrases
     SERVER_COMMAND_STOP_SERVER("/stop"),

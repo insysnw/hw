@@ -29,12 +29,16 @@ public class SendMessageThread extends Thread {
                 if (message.split(" ", 2)[0].equals(Phrases.CLIENT_COMMAND_FILE.getPhrase())) {
                     sendFile(message.split(" ", 2)[1]);
                 } else {
-                    output.writeUTF(message);
-                    if (message.toLowerCase().trim().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
-                        client.closeSocket();
-                        break;
+                    if (!message.isEmpty()) {
+                        output.writeUTF(message);
+                        if (message.toLowerCase().trim().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
+                            client.closeSocket();
+                            break;
+                        }
+                        output.flush();
+                    } else {
+                        client.readMessage(Phrases.CLIENT_EMPTY_MESSAGE_ERROR.getPhrase());
                     }
-                    output.flush();
                 }
             } catch (IOException e) {
                 System.out.println(Phrases.SEND_MESSAGE_ERROR.getPhrase() + e.getMessage());

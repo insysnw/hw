@@ -85,7 +85,7 @@ public class Client {
         String regex = "[A-Za-z0-9\\n\\r\\t]*";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(userName);
-        if (matcher.matches()) {
+        if (matcher.matches() && !userName.isEmpty()) {
             return true;
         } else {
             readMessage(Phrases.CLIENT_INCORRECT_NAME_ERROR.getPhrase());
