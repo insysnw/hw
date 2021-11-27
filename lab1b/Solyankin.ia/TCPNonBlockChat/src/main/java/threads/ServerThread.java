@@ -208,6 +208,7 @@ public class ServerThread extends Thread {
                 buffer.clear();
                 buffer = ByteBuffer.wrap(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase().getBytes());
                 socketChannel.write(buffer);
+                System.out.println(users.get(socketChannel) + Phrases.USER_QUITED.getPhrase());
             }
             System.out.println(Phrases.SERVER_STOPPED.getPhrase());
             users.clear();

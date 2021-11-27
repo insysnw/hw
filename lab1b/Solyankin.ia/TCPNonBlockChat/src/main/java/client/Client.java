@@ -127,7 +127,7 @@ public class Client {
             try {
                 socketChannel.close();
                 key.cancel();
-                readMessage(Phrases.SERVER_STOPPED.getPhrase());
+                System.out.println(Phrases.SEND_MESSAGE_ERROR.getPhrase() + Phrases.SERVER_STOPPED.getPhrase());
                 System.exit(-1);
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -194,48 +194,42 @@ public class Client {
     }
 
     private void write(SelectionKey key) {
-        try {
-            SocketChannel channel = (SocketChannel) key.channel();
-            buffer = ByteBuffer.allocate(1024);
-            buffer.clear();
+        SocketChannel channel = (SocketChannel) key.channel();
+        buffer = ByteBuffer.allocate(1024);
+        buffer.clear();
 
-            if (!user.getNameStatus()) {
-                enterUserName();
-                writeToSocket(channel, userName.length(), userName);
-            } else {
-                if (!readerThread) {
-                    Thread thread = new Thread(() -> {
-                        try {
-                            while (true) {
-                                String message = reader.readLine().trim();
-                                if (!message.equals("")) {
-                                    if (message.split(" ", 2)[0].equals(Phrases.CLIENT_COMMAND_FILE.getPhrase())) {
-                                        sendFile(message.split(" ", 2)[1], channel);
-                                    } else {
-                                        writeToSocket(channel, message.length(), message);
-                                        if (message.toLowerCase().trim().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
-                                            socketChannel.close();
-                                            key.cancel();
-                                            readMessage(Phrases.CLIENT_CLOSED.getPhrase());
-                                            System.exit(-1);
-                                        }
+        if (!user.getNameStatus()) {
+            enterUserName();
+            writeToSocket(channel, userName.length(), userName);
+        } else {
+            if (!readerThread) {
+                Thread thread = new Thread(() -> {
+                    try {
+                        while (true) {
+                            String message = reader.readLine().trim();
+                            if (!message.equals("")) {
+                                if (message.split(" ", 2)[0].equals(Phrases.CLIENT_COMMAND_FILE.getPhrase())) {
+                                    sendFile(message.split(" ", 2)[1], channel);
+                                } else {
+                                    writeToSocket(channel, message.length(), message);
+                                    if (message.toLowerCase().trim().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
+                                        socketChannel.close();
+                                        key.cancel();
+                                        readMessage(Phrases.CLIENT_CLOSED.getPhrase());
+                                        System.exit(-1);
                                     }
                                 }
                             }
-                        } catch (IOException e) {
-                            readMessage(Phrases.CLIENT_CLOSED.getPhrase());
                         }
-                    });
-                    thread.start();
-                    readerThread = true;
-                }
+                    } catch (IOException e) {
+                        readMessage(Phrases.CLIENT_CLOSED.getPhrase());
+                    }
+                });
+                thread.start();
+                readerThread = true;
             }
-            key.interestOps(SelectionKey.OP_READ);
-        } catch (IOException e) {
-            readMessage("Client " + Phrases.SEND_MESSAGE_ERROR.getPhrase());
-            e.printStackTrace();
-            System.exit(-1);
         }
+        key.interestOps(SelectionKey.OP_READ);
     }
 
     private void enterUserName() {
@@ -287,11 +281,14 @@ public class Client {
         }
     }
 
-    private void writeToSocket(SocketChannel channel, int length, String message) throws IOException {
-        buffer.limit(length);
-        buffer.clear();
-        buffer = ByteBuffer.wrap((message.trim()).getBytes());
-        channel.write(buffer);
+    private void writeToSocket(SocketChannel channel, int length, String message){
+        try {
+            buffer.limit(length);
+            buffer.clear();
+            buffer = ByteBuffer.wrap((message.trim()).getBytes());
+            channel.write(buffer);
+        } catch (IOException ignored) {
+        }
     }
 
     private void readMessage(String response) {
