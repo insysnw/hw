@@ -3,8 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="1c847180-0bfb-48e4-9e49-e55efc8f672c" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/TFTP/client1/CV.prj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/TFTP/server/CV.prj" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +22,11 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
   </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\Users\traed\PycharmProjects\hw\lab2\TFTP\client1" />
+    </key>
+  </component>
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -38,13 +41,13 @@
     <servers />
   </component>
   <component name="WindowStateProjectService">
-    <state x="668" y="347" key="com.intellij.ide.util.TipDialog" timestamp="1637849321483">
+    <state x="668" y="347" key="com.intellij.ide.util.TipDialog" timestamp="1638000692515">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="668" y="347" key="com.intellij.ide.util.TipDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1637849321483" />
-    <state x="682" y="438" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1637850057909">
+    <state x="668" y="347" key="com.intellij.ide.util.TipDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1638000692515" />
+    <state x="682" y="438" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1637946266017">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="682" y="438" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1637850057909" />
+    <state x="682" y="438" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/0.0.1920.1040@0.0.1920.1040" timestamp="1637946266017" />
   </component>
 </project>
