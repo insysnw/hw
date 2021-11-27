@@ -3,11 +3,6 @@ package server;
 import resources.Phrases;
 import threads.ServerThread;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
 import java.util.Scanner;
 
 public class Server {
@@ -20,15 +15,8 @@ public class Server {
         this.host = host;
     }
 
-    public void start() throws IOException {
-        ServerSocketChannel server = ServerSocketChannel.open();
-        server.configureBlocking(false);
-        server.socket().bind(new InetSocketAddress(host, port));
-        Selector selector = Selector.open();
-        server.register(selector, SelectionKey.OP_ACCEPT);
-        System.out.println(Phrases.SERVER_WELCOME.getPhrase() + port);
-
-        serverThread = new ServerThread(server, selector);
+    public void start() {
+        serverThread = new ServerThread(host, port);
         serverThread.start();
 
         while (!serverThread.isInterrupted()) {
