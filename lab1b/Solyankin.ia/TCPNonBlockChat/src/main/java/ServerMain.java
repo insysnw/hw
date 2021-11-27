@@ -1,13 +1,11 @@
 import resources.Phrases;
 import server.Server;
 
-import java.io.IOException;
-
 public class ServerMain {
     private static Integer port = 8888;
     private static String host = "0.0.0.0";
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         if (args.length != 2) {
             System.out.println(Phrases.DEFAULT_HOST_AND_PORT.getPhrase());
         } else {

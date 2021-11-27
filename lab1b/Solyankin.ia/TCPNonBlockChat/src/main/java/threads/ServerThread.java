@@ -12,23 +12,19 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class ServerThread extends Thread {
     private final String host;
     private final int port;
-    private final ArrayList<String> userNames;
-    private final ArrayList<SocketChannel> acceptedUsers;
+    private final HashMap<SocketChannel, String> users;
     private ByteBuffer buffer;
-    private String userName;
 
     public ServerThread(String host, int port) {
         this.port = port;
         this.host = host;
-        userNames = new ArrayList<>();
-        acceptedUsers = new ArrayList<>();
-        buffer = ByteBuffer.allocate(5 * 1024 * 1024);
+        users = new HashMap<>();
     }
 
     @Override
@@ -65,16 +61,14 @@ public class ServerThread extends Thread {
                     }
                 }
             }
-            try {
-                selector.close();
-                for (SocketChannel channel : acceptedUsers) {
-                    channel.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+            selector.close();
+            for (SocketChannel channel : users.keySet()) {
+                channel.close();
             }
         } catch (IOException e) {
             System.out.println(Phrases.SERVER_STOPPED.getPhrase());
+            interrupt();
+            System.exit(-1);
         }
     }
 
@@ -96,14 +90,13 @@ public class ServerThread extends Thread {
             buffer = ByteBuffer.allocate(1024);
             buffer.clear();
             if (socketChannel.read(buffer) > 0) {
-                if (!acceptedUsers.contains(socketChannel)) {
+                if (!users.containsKey(socketChannel)) {
                     User user = new User(null, false);
                     while (!user.getNameStatus()) {
-                        userName = new String(buffer.array()).trim();
-                        if (!userNames.contains(userName)) {
+                        String userName = new String(buffer.array()).trim();
+                        if (!users.containsValue(userName)) {
                             user = new User(userName, true);
-                            acceptedUsers.add(socketChannel);
-                            userNames.add(userName);
+                            users.put(socketChannel, userName);
                             System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), userName, Phrases.USER_JOINED.getPhrase()));
                             broadcast(userName + Phrases.USER_JOINED.getPhrase());
                         } else {
@@ -115,10 +108,8 @@ public class ServerThread extends Thread {
                         }
                     }
                 } else {
-                    String clientMessages = new String(buffer.array()).trim();
-                    String[] messageParts = clientMessages.split(" ", 2);
-                    userName = messageParts[0];
-                    String userMessage = messageParts[1];
+                    String userName = users.get(socketChannel);
+                    String userMessage = new String(buffer.array()).trim();
                     if (!userMessage.trim().toLowerCase().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
                         if (userMessage.split(" ", 3)[0].equals(Phrases.CLIENT_COMMAND_FILE.getPhrase())) {
                             fileProcessing(userMessage, socketChannel);
@@ -137,11 +128,12 @@ public class ServerThread extends Thread {
                 }
             }
         } catch (IOException e) {
-            System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), userName, Phrases.USER_QUITED.getPhrase()));
+            System.out.println(String.format("<%s>[%s]:%s", getCurrentTime(), users.get(socketChannel), Phrases.USER_QUITED.getPhrase()));
             try {
                 socketChannel.close();
                 key.cancel();
-                removeUser(userName, socketChannel);
+                String userName = users.get(socketChannel);
+                removeUser(users.get(socketChannel), socketChannel);
                 broadcast(userName + Phrases.USER_QUITED.getPhrase());
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -158,8 +150,8 @@ public class ServerThread extends Thread {
             fileName.append(messageParts[wordIndex++]).append(" ");
         }
         byte[] fileBytes = new byte[Integer.parseInt(messageParts[wordIndex])];
-        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), userName, Phrases.SEND_FILE.getPhrase() + fileName));
-        broadcast(userName + " " + Phrases.SEND_FILE.getPhrase() + fileName + " ( " + fileBytes.length + " bytes) ");
+        System.out.println(String.format("<%s>[%s]: %s", getCurrentTime(), users.get(channel), Phrases.SEND_FILE.getPhrase() + fileName));
+        broadcast(users.get(channel) + " " + Phrases.SEND_FILE.getPhrase() + fileName + " ( " + fileBytes.length + " bytes) ");
         buffer = ByteBuffer.allocate(fileBytes.length);
         buffer.clear();
         while (buffer.position() < fileBytes.length) {
@@ -181,7 +173,7 @@ public class ServerThread extends Thread {
     }
 
     private void broadcast(String message) throws IOException {
-        for (SocketChannel channel : acceptedUsers) {
+        for (SocketChannel channel : users.keySet()) {
             buffer = ByteBuffer.allocate(1024);
             buffer.clear();
             buffer = ByteBuffer.wrap(message.getBytes());
@@ -190,7 +182,7 @@ public class ServerThread extends Thread {
     }
 
     private void broadcast(byte[] bytes) throws IOException {
-        for (SocketChannel channel : acceptedUsers) {
+        for (SocketChannel channel : users.keySet()) {
             buffer = ByteBuffer.allocate(bytes.length);
             buffer.clear();
             buffer = ByteBuffer.wrap(bytes);
@@ -199,26 +191,26 @@ public class ServerThread extends Thread {
     }
 
     private void removeUser(String userName, SocketChannel socketChannel) {
-        boolean removed = userNames.remove(userName);
+        boolean removed = users.values().remove(userName);
         if (removed) {
-            acceptedUsers.remove(socketChannel);
+            users.remove(socketChannel);
         }
     }
 
-    public ArrayList<String> getUserNames() {
-        return userNames;
+    public HashMap<SocketChannel, String> getUserNames() {
+        return users;
     }
 
     public void closeServerThread() {
         try {
-            for (SocketChannel socketChannel : acceptedUsers) {
+            for (SocketChannel socketChannel : users.keySet()) {
                 buffer = ByteBuffer.allocate(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase().length());
                 buffer.clear();
                 buffer = ByteBuffer.wrap(Phrases.SERVER_COMMAND_STOP_SERVER.getPhrase().getBytes());
                 socketChannel.write(buffer);
             }
             System.out.println(Phrases.SERVER_STOPPED.getPhrase());
-            userNames.clear();
+            users.clear();
             System.exit(-1);
         } catch (IOException e) {
             e.printStackTrace();

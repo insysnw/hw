@@ -18,7 +18,6 @@ public class Server {
     public void start() {
         serverThread = new ServerThread(host, port);
         serverThread.start();
-
         while (!serverThread.isInterrupted()) {
             readCommand();
         }
@@ -35,7 +34,7 @@ public class Server {
                         serverThread.closeServerThread();
                         break;
                     case SERVER_COMMAND_SHOW_USERS:
-                        System.out.println(serverThread.getUserNames());
+                        System.out.println(serverThread.getUserNames().values());
                         break;
                     case SERVER_INCORRECT_COMMAND_ERROR:
                         System.out.println(Phrases.SERVER_INCORRECT_COMMAND_ERROR.getPhrase());
