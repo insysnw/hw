@@ -46,3 +46,7 @@ when
 after
 
 ![c](img/g.png)
+
+highlight visually
+
+![c](img/h.png)
