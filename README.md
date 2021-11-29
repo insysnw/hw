@@ -10,3 +10,24 @@
 
 Принятие PR означает, что работа зачтена.
 
+# Результаты
+
+## 202
+
+| Student       | 1a | 1b | 2 srvr | 2 clnt | 3  |
+| --            | -- | -- | --     | --     | -- |
+| Chernyshev.YN |    |    |        |        |    |
+| Fedorov.SA    |    |    |        |        |    |
+| Keita.AS      |    |    |        |        |    |
+| Kobyzhev.AM   | ?  |    | DNS    | NTP    |    |
+| Krynskiy.PN   |    |    |        |        |    |
+| Likholetov.MD |    |    |        |        |    |
+| Lunyak.NA     | +  |    | TFTP   | DHCP   |    |
+| Ruban.SD      |    |    |        |        |    |
+| Samsonov.SI   |    |    |        |        |    |
+| Savelev.DM    |    |    |        |        |    |
+| Sherepa.NM    | ?  |    |        |        |    |
+| Smirnov.LD    |    |    |        |        |    |
+| Smirnov.NV    |    |    |        |        |    |
+| Sukhachev.NA  | ?  |    | TFTP + | NTP    |    |
+| Tkachenko.DYU | ?  |    | NTP    | DNS    |    |
