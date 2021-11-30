@@ -18,8 +18,8 @@ val connectionStates = listOf(
 )
 
 sealed class DisconnectionState(override val value: Int) : PacketState
-object DisconnectionRequest : ConnectionState(0)
-object DisconnectionNotification : ConnectionState(1)
+object DisconnectionRequest : DisconnectionState(0)
+object DisconnectionNotification : DisconnectionState(1)
 
 val disconnectionStates = listOf(
     DisconnectionRequest,

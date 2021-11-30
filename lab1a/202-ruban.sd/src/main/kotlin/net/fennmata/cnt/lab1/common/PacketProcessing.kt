@@ -10,7 +10,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 
-fun InputStream.readPacket(): Packet? {
+fun InputStream.readPacket(): Packet<*>? {
     val header = readNBytes(16)
     if (header.size < 16) throw IOException("Stream closed before a full packet was read")
     val dataLength = header.slice(2..3).toIntWithoutSign()
@@ -49,7 +49,7 @@ fun InputStream.readPacket(): Packet? {
     }
 }
 
-fun OutputStream.writePacket(packet: Packet) {
+fun OutputStream.writePacket(packet: Packet<*>) {
     val buffer: ByteBuffer
     with(packet) {
         buffer = ByteBuffer.allocate(16 + dataLength)
@@ -66,25 +66,21 @@ fun OutputStream.writePacket(packet: Packet) {
     write(buffer.array())
 }
 
-fun Socket.readPacket(): Packet? {
+fun Socket.readPacket(): Packet<*>? {
     if (isClosed) throw SocketException("Socket closed")
-    return getInputStream().use { inputStream ->
-        try {
-            inputStream.readPacket()
-        } catch (e: IOException) {
-            throw SocketException(e.message)
-        }
+    return try {
+        getInputStream().readPacket()
+    } catch (e: IOException) {
+        throw SocketException(e.message)
     }
 }
 
-fun Socket.writePacket(packet: Packet) {
+fun Socket.writePacket(packet: Packet<*>) {
     if (isClosed) throw SocketException("Socket closed")
-    getOutputStream().use { outputStream ->
-        try {
-            outputStream.writePacket(packet)
-        } catch (e: IOException) {
-            throw SocketException(e.message)
-        }
+    try {
+        getOutputStream().writePacket(packet)
+    } catch (e: IOException) {
+        throw SocketException(e.message)
     }
 }
 
@@ -120,7 +116,7 @@ private val PacketState.typeValue get() = when (this) {
     is KeepAliveState -> PacketType.KEEPALIVE.packetValue
 }
 
-private val Packet.typeValue get() = state.typeValue
+private val Packet<*>.typeValue get() = state.typeValue
 
 private fun getStatesByType(typeValue: Int) = when (typeValue) {
     PacketType.CONNECTION.packetValue -> connectionStates

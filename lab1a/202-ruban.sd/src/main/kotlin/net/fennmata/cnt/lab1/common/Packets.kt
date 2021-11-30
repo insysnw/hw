@@ -3,7 +3,7 @@ package net.fennmata.cnt.lab1.common
 import java.nio.ByteBuffer
 import java.time.OffsetDateTime
 
-sealed class Packet(val state: PacketState, val timestamp: OffsetDateTime) {
+sealed class Packet<T : PacketState>(val state: T, val timestamp: OffsetDateTime) {
     abstract val clientName: String
     abstract val object1: ByteArray
     abstract val object2: ByteArray
@@ -15,7 +15,7 @@ class ConnectionPacket(
     state: ConnectionState,
     timestamp: OffsetDateTime,
     override val clientName: String
-) : Packet(state, timestamp) {
+) : Packet<ConnectionState>(state, timestamp) {
     override val object1 = byteArrayOf()
     override val object2 = byteArrayOf()
 }
@@ -24,7 +24,7 @@ class DisconnectionPacket(
     state: DisconnectionState,
     timestamp: OffsetDateTime,
     override val clientName: String
-) : Packet(state, timestamp) {
+) : Packet<DisconnectionState>(state, timestamp) {
     override val object1 = byteArrayOf()
     override val object2 = byteArrayOf()
 }
@@ -34,7 +34,7 @@ class MessagePacket(
     timestamp: OffsetDateTime,
     override val clientName: String,
     val message: String
-) : Packet(state, timestamp) {
+) : Packet<MessageState>(state, timestamp) {
     override val object1 = message.toByteArray()
     override val object2 = byteArrayOf()
 }
@@ -45,7 +45,7 @@ class FilePacket(
     override val clientName: String,
     val fileName: String,
     val fileLength: Long
-) : Packet(state, timestamp) {
+) : Packet<FileState>(state, timestamp) {
     override val object1 = fileName.toByteArray()
     override val object2: ByteArray = ByteBuffer.allocate(8).putLong(fileLength).array()
 }
@@ -53,7 +53,7 @@ class FilePacket(
 class KeepAlivePacket(
     state: KeepAliveState,
     timestamp: OffsetDateTime
-) : Packet(state, timestamp) {
+) : Packet<KeepAliveState>(state, timestamp) {
     override val clientName = ""
     override val object1 = byteArrayOf()
     override val object2 = byteArrayOf()

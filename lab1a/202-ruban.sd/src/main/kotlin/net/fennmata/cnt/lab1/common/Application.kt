@@ -73,7 +73,7 @@ abstract class Application<T : Application<T>> : Runnable, Closeable {
 
     lateinit var coroutineScope: CoroutineScope
 
-    private var isRunning = false
+    protected var isRunning = false
 
     private val unknownCommand = object : ApplicationBaseResponse<T> {
         override suspend fun execute(arg: String?) {
