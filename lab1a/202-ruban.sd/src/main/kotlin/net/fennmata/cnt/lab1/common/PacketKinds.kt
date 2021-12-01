@@ -27,15 +27,37 @@ val disconnectionStates = listOf(
 sealed class MessageState(override val value: Int) : PacketState
 object MessageSent : MessageState(0)
 
-val messageStates = listOf<MessageState>(
+val messageStates = listOf(
     MessageSent
 )
 
 sealed class FileState(override val value: Int) : PacketState
-// TODO
+object FileUploadRequest : FileState(0)
+object FileDownloadRequest : FileState(1)
 
-val fileStates = listOf<FileState>(
-    // TODO
+val fileStates = listOf(
+    FileUploadRequest,
+    FileDownloadRequest
+)
+
+sealed class FileTransferInfoState(override val value: Int) : PacketState
+object FileUploadAccepted : FileTransferInfoState(0)
+object FileUploadRejected : FileTransferInfoState(1)
+object FileDownloadAllowed : FileTransferInfoState(2)
+object FileDownloadProhibited : FileTransferInfoState(3)
+
+val fileTransferInfoStates = listOf(
+    FileUploadAccepted,
+    FileUploadRejected,
+    FileDownloadAllowed,
+    FileDownloadProhibited
+)
+
+sealed class FileTransferState(override val value: Int) : PacketState
+object FileTransfer : FileTransferState(0)
+
+val fileTransferStates = listOf(
+    FileTransfer
 )
 
 sealed class KeepAliveState(override val value: Int) : PacketState

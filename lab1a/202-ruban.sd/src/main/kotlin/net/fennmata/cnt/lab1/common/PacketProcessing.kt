@@ -48,6 +48,8 @@ fun InputStream.readPacket(): Packet<*>? {
         is FileState -> FilePacket(
             state, timestamp, clientName, object1.decodeToString(), object2.toLongWithoutSign()
         )
+        is FileTransferInfoState -> FileTransferInfoPacket(state, timestamp, clientName, object2.toIntWithoutSign())
+        is FileTransferState -> FileTransferPacket(state, timestamp, clientName, object1)
         is KeepAliveState -> KeepAlivePacket(state, timestamp)
     }
 }
@@ -141,7 +143,9 @@ private enum class PacketType(val packetValue: Int) {
     DISCONNECTION(1),
     MESSAGE(2),
     FILE(3),
-    KEEPALIVE(4)
+    FILE_TRANSFER_INFO(4),
+    FILE_TRANSFER(5),
+    KEEPALIVE(6)
 }
 
 private val PacketState.typeValue get() = when (this) {
@@ -149,6 +153,8 @@ private val PacketState.typeValue get() = when (this) {
     is DisconnectionState -> PacketType.DISCONNECTION.packetValue
     is MessageState -> PacketType.MESSAGE.packetValue
     is FileState -> PacketType.FILE.packetValue
+    is FileTransferInfoState -> PacketType.FILE_TRANSFER_INFO.packetValue
+    is FileTransfer -> PacketType.FILE_TRANSFER.packetValue
     is KeepAliveState -> PacketType.KEEPALIVE.packetValue
 }
 
@@ -159,6 +165,8 @@ private fun getStatesByType(typeValue: Int) = when (typeValue) {
     PacketType.DISCONNECTION.packetValue -> disconnectionStates
     PacketType.MESSAGE.packetValue -> messageStates
     PacketType.FILE.packetValue -> fileStates
+    PacketType.FILE_TRANSFER_INFO.packetValue -> fileTransferInfoStates
+    PacketType.FILE_TRANSFER.packetValue -> fileTransferStates
     PacketType.KEEPALIVE.packetValue -> keepAliveStates
     else -> null
 }
