@@ -25,8 +25,8 @@ sealed class ApplicationOutput(val marker: String)
 
 object NotificationOutput : ApplicationOutput(":")
 object WarningOutput : ApplicationOutput("!")
-object MessageOutput : ApplicationOutput("M")
-object FileOutput : ApplicationOutput("F")
+object MessageOutput : ApplicationOutput("[MSG]")
+object FileOutput : ApplicationOutput("[FILE]")
 
 fun ApplicationOutput.write(text: String, timestamp: OffsetDateTime? = null, author: String? = null) {
     val output = StringBuilder(" ".repeat(4)).apply {

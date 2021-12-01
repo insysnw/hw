@@ -11,6 +11,7 @@ fun main(arguments: Array<String>) {
             ChatClient.use { it.run() }
         }
         "server" -> {
+            ChatServer.shouldOldFilesBeDeleted = arguments.none { it == "--keep-old-files" }
             ChatServer.use { it.run() }
         }
         else -> println("No such application type as \"$applicationType\": try \"client\" or \"server\".")

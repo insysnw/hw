@@ -1,5 +1,6 @@
 package net.fennmata.cnt.lab1.server
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -15,11 +16,13 @@ import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
+import net.fennmata.cnt.lab1.common.FileDownloadRejected
 import net.fennmata.cnt.lab1.common.FileDownloadRequest
 import net.fennmata.cnt.lab1.common.FileNotification
 import net.fennmata.cnt.lab1.common.FilePacket
 import net.fennmata.cnt.lab1.common.FileTransferInfoPacket
 import net.fennmata.cnt.lab1.common.FileTransferPacket
+import net.fennmata.cnt.lab1.common.FileUploadRejected
 import net.fennmata.cnt.lab1.common.FileUploadRequest
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.MessagePacket
@@ -30,6 +33,7 @@ import net.fennmata.cnt.lab1.common.readPacketSafely
 import net.fennmata.cnt.lab1.common.readable
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacketSafely
+import java.io.File
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -44,6 +48,9 @@ object ChatServer : Application<ChatServer>() {
     )
 
     override fun initialize() {
+        if (shouldOldFilesBeDeleted && !fileStorage.deleteRecursively() || !fileStorage.mkdirs())
+            throw IllegalStateException("The server could not initialize file storage")
+
         NotificationOutput.write("Please enter the server's IPv4 address.")
         val address = readln()
         NotificationOutput.write("Please enter the server's TCP port.")
@@ -113,6 +120,8 @@ object ChatServer : Application<ChatServer>() {
         clientSockets.forEach { it.close() }
     }
 
+    var shouldOldFilesBeDeleted = true
+
     private val serverSocket = ServerSocket()
 
     private val connections = mutableMapOf<Socket, String>()
@@ -120,6 +129,8 @@ object ChatServer : Application<ChatServer>() {
     private val clientSockets get() = connections.keys
 
     private val clientUsernames get() = connections.values
+
+    private val fileStorage = File("files")
 
     private fun <T> Iterable<T>.except(element: T) = filter { it != element }
 
@@ -185,8 +196,8 @@ object ChatServer : Application<ChatServer>() {
             when (packet) {
                 is ConnectionPacket -> Unit
                 is DisconnectionPacket -> Unit
-                is MessagePacket -> process(packet)
-                is FilePacket -> process(packet)
+                is MessagePacket -> process(this, packet)
+                is FilePacket -> process(this, packet)
                 is FileTransferInfoPacket -> Unit
                 is FileTransferPacket -> Unit
                 is KeepAlivePacket -> Unit
@@ -194,7 +205,7 @@ object ChatServer : Application<ChatServer>() {
         }
     }
 
-    private suspend fun Socket.process(packet: MessagePacket) = with(packet) {
+    private suspend fun Socket.process(scope: CoroutineScope, packet: MessagePacket) = with(packet) {
         val messageRetranslation = MessagePacket(
             MessageSent,
             timestamp = OffsetDateTime.now(),
@@ -202,7 +213,7 @@ object ChatServer : Application<ChatServer>() {
             message = message
         )
         clientSockets.except(this@process).forEach {
-            it.writePacketSafely(coroutineScope, messageRetranslation) { e ->
+            it.writePacketSafely(scope, messageRetranslation) { e ->
                 WarningOutput.write("Connection to ${it.remoteSocketAddress} was closed [e: ${e.message}].")
                 disconnectClient(
                     it,
@@ -213,20 +224,58 @@ object ChatServer : Application<ChatServer>() {
         }
     }
 
-    private suspend fun Socket.process(packet: FilePacket) = with(packet) {
+    private suspend fun Socket.process(scope: CoroutineScope, packet: FilePacket) = with(packet) {
         val senderName = connections[this@process] ?: throw IllegalStateException("No username found for a client")
+        val inputTimestamp = OffsetDateTime.now()
+
+        var isUpload = false
+        var isApproved = false
+
         when (packet.state) {
             is FileNotification -> return@with
             is FileUploadRequest -> {
+                isUpload = true
                 NotificationOutput.write(
                     "$senderName @ $remoteSocketAddress wants to upload $fileName (${fileLength.readable})."
                 )
+                if (File(fileStorage, "$senderName/$fileName").exists()) {
+                    NotificationOutput.write("File \"$senderName/$fileName\" already exists. Rejecting the request ...")
+                } else {
+                    NotificationOutput.write("Accepting the \"$senderName/$fileName\" upload request ...")
+                    isApproved = true
+                }
             }
             is FileDownloadRequest -> {
                 NotificationOutput.write(
                     "$senderName @ $remoteSocketAddress wants to download $fileName by $clientName."
                 )
+                if (!File(fileStorage, "$clientName/$fileName").exists()) {
+                    NotificationOutput.write("No file \"$clientName/$fileName\" was found. Rejecting the request ...")
+                } else {
+                    NotificationOutput.write("Accepting the \"$clientName/$fileName\" download request ...")
+                    isApproved = true
+                }
             }
+        }
+
+        if (!isApproved) {
+            val rejection = FileTransferInfoPacket(
+                if (isUpload) FileUploadRejected else FileDownloadRejected,
+                inputTimestamp,
+                senderName,
+                "${if (isUpload) senderName else clientName}/$fileName",
+                0
+            )
+            writePacketSafely(scope, rejection) { e ->
+                WarningOutput.write("Connection to $remoteSocketAddress was closed [e: ${e.message}].")
+                disconnectClient(
+                    this@process,
+                    OffsetDateTime.now(),
+                    connections[this@process]
+                        ?: throw IllegalStateException("No username found for a client")
+                )
+            }
+            return@with
         }
     }
 

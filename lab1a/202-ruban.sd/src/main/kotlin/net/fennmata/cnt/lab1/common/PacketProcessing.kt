@@ -48,7 +48,9 @@ fun InputStream.readPacket(): Packet<*>? {
         is FileState -> FilePacket(
             state, timestamp, clientName, object1.decodeToString(), object2.toLongWithoutSign()
         )
-        is FileTransferInfoState -> FileTransferInfoPacket(state, timestamp, clientName, object2.toIntWithoutSign())
+        is FileTransferInfoState -> FileTransferInfoPacket(
+            state, timestamp, clientName, object1.decodeToString(), object2.toIntWithoutSign()
+        )
         is FileTransferState -> FileTransferPacket(state, timestamp, clientName, object1)
         is KeepAliveState -> KeepAlivePacket(state, timestamp)
     }

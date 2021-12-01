@@ -54,9 +54,10 @@ class FileTransferInfoPacket(
     state: FileTransferInfoState,
     timestamp: OffsetDateTime,
     override val clientName: String,
+    val fullFileName: String,
     val socketPort: Int
 ) : Packet<FileTransferInfoState>(state, timestamp) {
-    override val object1 = byteArrayOf()
+    override val object1 = fullFileName.toByteArray()
     override val object2: ByteArray = ByteBuffer.allocate(4).putInt(socketPort).array()
 }
 

@@ -62,6 +62,7 @@ object UploadFile : ApplicationResponse<ChatClient> {
             WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
             ChatClient.close()
         }
+        ChatClient.fileTransferQueue += ChatClient.FileUpload("${ChatClient.username}/$fileName")
         NotificationOutput.write("An upload request of $fileName (${fileLength.readable}) was sent to the server.")
     }
 }
@@ -83,6 +84,7 @@ object DownloadFile : ApplicationResponse<ChatClient> {
             WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
             ChatClient.close()
         }
+        ChatClient.fileTransferQueue += ChatClient.FileDownload("$fileAuthor/$fileName")
         NotificationOutput.write("An download request of $fileName by $fileAuthor was sent to the server.")
     }
 

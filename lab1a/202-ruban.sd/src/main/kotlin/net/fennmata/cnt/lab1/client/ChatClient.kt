@@ -10,11 +10,15 @@ import net.fennmata.cnt.lab1.common.ConnectionPacket
 import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
+import net.fennmata.cnt.lab1.common.FileDownloadApproved
+import net.fennmata.cnt.lab1.common.FileDownloadRejected
 import net.fennmata.cnt.lab1.common.FileNotification
 import net.fennmata.cnt.lab1.common.FileOutput
 import net.fennmata.cnt.lab1.common.FilePacket
 import net.fennmata.cnt.lab1.common.FileTransferInfoPacket
 import net.fennmata.cnt.lab1.common.FileTransferPacket
+import net.fennmata.cnt.lab1.common.FileUploadApproved
+import net.fennmata.cnt.lab1.common.FileUploadRejected
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.KeepAlivePing
 import net.fennmata.cnt.lab1.common.MessageOutput
@@ -102,6 +106,8 @@ object ChatClient : Application<ChatClient>() {
 
     lateinit var username: String
 
+    val fileTransferQueue = mutableListOf<FileTransfer>()
+
     private fun process(packet: ConnectionPacket) = with(packet) {
         if (state !is ConnectionNotification) return@with
         NotificationOutput.write("User $clientName has connected to the chat.", timestamp)
@@ -121,7 +127,34 @@ object ChatClient : Application<ChatClient>() {
     }
 
     private fun process(packet: FileTransferInfoPacket) = with(packet) {
-        // TODO
+        when (packet.state) {
+            is FileUploadRejected -> {
+                val rejectedTransfer = fileTransferQueue.find { it is FileUpload && it.fullFileName == fullFileName }
+                    ?: return@with
+                fileTransferQueue.remove(rejectedTransfer)
+                WarningOutput.write("The server has rejected the upload request for $fullFileName.")
+            }
+            is FileDownloadRejected -> {
+                val rejectedTransfer = fileTransferQueue.find { it is FileDownload && it.fullFileName == fullFileName }
+                    ?: return@with
+                fileTransferQueue.remove(rejectedTransfer)
+                WarningOutput.write("The server has rejected the download request for $fullFileName.")
+            }
+            is FileUploadApproved -> {
+                // TODO
+            }
+            is FileDownloadApproved -> {
+                // TODO
+            }
+        }
     }
+
+    sealed interface FileTransfer {
+        val fullFileName: String
+    }
+
+    data class FileUpload(override val fullFileName: String) : FileTransfer
+
+    data class FileDownload(override val fullFileName: String) : FileTransfer
 
 }

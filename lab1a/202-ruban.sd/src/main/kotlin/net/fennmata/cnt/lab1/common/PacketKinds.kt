@@ -43,16 +43,16 @@ val fileStates = listOf(
 )
 
 sealed class FileTransferInfoState(override val value: Int) : PacketState
-object FileUploadAccepted : FileTransferInfoState(0)
+object FileUploadApproved : FileTransferInfoState(0)
 object FileUploadRejected : FileTransferInfoState(1)
-object FileDownloadAllowed : FileTransferInfoState(2)
-object FileDownloadProhibited : FileTransferInfoState(3)
+object FileDownloadApproved : FileTransferInfoState(2)
+object FileDownloadRejected : FileTransferInfoState(3)
 
 val fileTransferInfoStates = listOf(
-    FileUploadAccepted,
+    FileUploadApproved,
     FileUploadRejected,
-    FileDownloadAllowed,
-    FileDownloadProhibited
+    FileDownloadApproved,
+    FileDownloadRejected
 )
 
 sealed class FileTransferState(override val value: Int) : PacketState
