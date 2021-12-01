@@ -9,11 +9,11 @@ import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionPacket
 import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
-import net.fennmata.cnt.lab1.common.DisconnectionNotification
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
 import net.fennmata.cnt.lab1.common.FilePacket
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.KeepAlivePing
+import net.fennmata.cnt.lab1.common.MessageOutput
 import net.fennmata.cnt.lab1.common.MessagePacket
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
@@ -30,7 +30,8 @@ object ChatClient : Application<ChatClient>() {
 
     override val responses = listOf(
         QuitClientCommand,
-        PrintClientHelpCommand
+        PrintClientHelpCommand,
+        SendMessage
     )
 
     override fun initialize() {
@@ -98,12 +99,11 @@ object ChatClient : Application<ChatClient>() {
     }
 
     private fun process(packet: DisconnectionPacket) = with(packet) {
-        if (state !is DisconnectionNotification) return@with
         NotificationOutput.write("User $clientName has disconnected from the chat.", timestamp)
     }
 
     private fun process(packet: MessagePacket) = with(packet) {
-        // TODO
+        MessageOutput.write(message, timestamp, clientName)
     }
 
     private fun process(packet: FilePacket) = with(packet) {

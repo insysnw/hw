@@ -18,6 +18,7 @@ import net.fennmata.cnt.lab1.common.DisconnectionPacket
 import net.fennmata.cnt.lab1.common.FilePacket
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.MessagePacket
+import net.fennmata.cnt.lab1.common.MessageSent
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.readPacketSafely
@@ -186,9 +187,22 @@ object ChatServer : Application<ChatServer>() {
     }
 
     private suspend fun Socket.process(packet: MessagePacket) = with(packet) {
-        val timestamp = OffsetDateTime.now()
-
-        // TODO
+        val messageRetranslation = MessagePacket(
+            MessageSent,
+            timestamp = OffsetDateTime.now(),
+            clientName = connections[this@process] ?: throw IllegalStateException("No username found for a client"),
+            message = message
+        )
+        clientSockets.except(this@process).forEach {
+            it.writePacketSafely(coroutineScope, messageRetranslation) { e ->
+                WarningOutput.write("Connection to ${it.remoteSocketAddress} was closed [e: ${e.message}].")
+                disconnectClient(
+                    it,
+                    OffsetDateTime.now(),
+                    connections[it] ?: throw IllegalStateException("No username found for a client")
+                )
+            }
+        }
     }
 
     private suspend fun Socket.process(packet: FilePacket) = with(packet) {

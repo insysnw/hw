@@ -5,8 +5,8 @@ sealed interface PacketState {
 }
 
 sealed class ConnectionState(override val value: Int) : PacketState
-object ConnectionRequest : ConnectionState(0)
-object ConnectionNotification : ConnectionState(1)
+object ConnectionNotification : ConnectionState(0)
+object ConnectionRequest : ConnectionState(1)
 object ConnectionApproved : ConnectionState(2)
 object ConnectionRejected : ConnectionState(3)
 
@@ -18,17 +18,17 @@ val connectionStates = listOf(
 )
 
 sealed class DisconnectionState(override val value: Int) : PacketState
-object DisconnectionNotification : DisconnectionState(1)
+object DisconnectionNotification : DisconnectionState(0)
 
 val disconnectionStates = listOf(
     DisconnectionNotification
 )
 
 sealed class MessageState(override val value: Int) : PacketState
-// TODO
+object MessageSent : MessageState(0)
 
 val messageStates = listOf<MessageState>(
-    // TODO
+    MessageSent
 )
 
 sealed class FileState(override val value: Int) : PacketState
