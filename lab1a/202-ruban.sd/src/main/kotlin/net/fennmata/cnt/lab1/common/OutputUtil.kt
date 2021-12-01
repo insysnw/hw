@@ -1,11 +1,11 @@
 package net.fennmata.cnt.lab1.common
 
+import java.text.DecimalFormat
 import java.time.OffsetDateTime
 import kotlin.math.floor
 import kotlin.math.log
 import kotlin.math.min
 import kotlin.math.pow
-import java.text.DecimalFormat
 
 private val possibleFileSizeUnits = listOf("bytes", "Kbytes", "Mbytes", "Gbytes")
 
