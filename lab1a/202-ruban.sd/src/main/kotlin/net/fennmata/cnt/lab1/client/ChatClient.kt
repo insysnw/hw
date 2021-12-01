@@ -10,7 +10,11 @@ import net.fennmata.cnt.lab1.common.ConnectionPacket
 import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
+import net.fennmata.cnt.lab1.common.FileNotification
+import net.fennmata.cnt.lab1.common.FileOutput
 import net.fennmata.cnt.lab1.common.FilePacket
+import net.fennmata.cnt.lab1.common.FileTransferInfoPacket
+import net.fennmata.cnt.lab1.common.FileTransferPacket
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.KeepAlivePing
 import net.fennmata.cnt.lab1.common.MessageOutput
@@ -19,6 +23,7 @@ import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.readPacket
 import net.fennmata.cnt.lab1.common.readPacketSafely
+import net.fennmata.cnt.lab1.common.readable
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacket
 import net.fennmata.cnt.lab1.common.writePacketSafely
@@ -31,7 +36,9 @@ object ChatClient : Application<ChatClient>() {
     override val responses = listOf(
         QuitClientCommand,
         PrintClientHelpCommand,
-        SendMessage
+        SendMessage,
+        UploadFile,
+        DownloadFile
     )
 
     override fun initialize() {
@@ -78,6 +85,8 @@ object ChatClient : Application<ChatClient>() {
                 is DisconnectionPacket -> process(packet)
                 is MessagePacket -> process(packet)
                 is FilePacket -> process(packet)
+                is FileTransferInfoPacket -> process(packet)
+                is FileTransferPacket -> Unit
                 is KeepAlivePacket -> Unit
             }
         }
@@ -107,6 +116,11 @@ object ChatClient : Application<ChatClient>() {
     }
 
     private fun process(packet: FilePacket) = with(packet) {
+        if (state !is FileNotification) return@with
+        FileOutput.write("[$fileName] (${fileLength.readable})", timestamp, clientName)
+    }
+
+    private fun process(packet: FileTransferInfoPacket) = with(packet) {
         // TODO
     }
 

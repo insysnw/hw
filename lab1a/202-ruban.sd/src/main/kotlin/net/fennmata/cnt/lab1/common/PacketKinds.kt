@@ -32,10 +32,12 @@ val messageStates = listOf(
 )
 
 sealed class FileState(override val value: Int) : PacketState
-object FileUploadRequest : FileState(0)
-object FileDownloadRequest : FileState(1)
+object FileNotification : FileState(0)
+object FileUploadRequest : FileState(1)
+object FileDownloadRequest : FileState(2)
 
 val fileStates = listOf(
+    FileNotification,
     FileUploadRequest,
     FileDownloadRequest
 )

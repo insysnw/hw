@@ -15,13 +15,19 @@ import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
+import net.fennmata.cnt.lab1.common.FileDownloadRequest
+import net.fennmata.cnt.lab1.common.FileNotification
 import net.fennmata.cnt.lab1.common.FilePacket
+import net.fennmata.cnt.lab1.common.FileTransferInfoPacket
+import net.fennmata.cnt.lab1.common.FileTransferPacket
+import net.fennmata.cnt.lab1.common.FileUploadRequest
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.MessagePacket
 import net.fennmata.cnt.lab1.common.MessageSent
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.readPacketSafely
+import net.fennmata.cnt.lab1.common.readable
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacketSafely
 import java.net.InetSocketAddress
@@ -181,6 +187,8 @@ object ChatServer : Application<ChatServer>() {
                 is DisconnectionPacket -> Unit
                 is MessagePacket -> process(packet)
                 is FilePacket -> process(packet)
+                is FileTransferInfoPacket -> Unit
+                is FileTransferPacket -> Unit
                 is KeepAlivePacket -> Unit
             }
         }
@@ -206,9 +214,20 @@ object ChatServer : Application<ChatServer>() {
     }
 
     private suspend fun Socket.process(packet: FilePacket) = with(packet) {
-        val timestamp = OffsetDateTime.now()
-
-        // TODO
+        val senderName = connections[this@process] ?: throw IllegalStateException("No username found for a client")
+        when (packet.state) {
+            is FileNotification -> return@with
+            is FileUploadRequest -> {
+                NotificationOutput.write(
+                    "$senderName @ $remoteSocketAddress wants to upload $fileName (${fileLength.readable})."
+                )
+            }
+            is FileDownloadRequest -> {
+                NotificationOutput.write(
+                    "$senderName @ $remoteSocketAddress wants to download $fileName by $clientName."
+                )
+            }
+        }
     }
 
 }

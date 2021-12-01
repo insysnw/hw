@@ -32,7 +32,7 @@ abstract class Application<T : Application<T>> : Runnable, Closeable {
                 coroutineScope.launch(Dispatchers.Default) { execute() }
 
                 while (isActive) {
-                    val input = readln().trim().replace(Regex("\\s+"), " ")
+                    val input = readln().trim().replaceFirst(Regex("\\s+"), " ")
                     val (commandName, commandArg) = if (' ' in input)
                         input.substringBefore(' ') to input.substringAfter(' ')
                     else
