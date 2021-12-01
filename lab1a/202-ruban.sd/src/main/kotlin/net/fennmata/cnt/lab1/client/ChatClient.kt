@@ -1,5 +1,8 @@
 package net.fennmata.cnt.lab1.client
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import net.fennmata.cnt.lab1.common.Application
 import net.fennmata.cnt.lab1.common.ConnectionApproved
 import net.fennmata.cnt.lab1.common.ConnectionNotification
@@ -10,6 +13,7 @@ import net.fennmata.cnt.lab1.common.DisconnectionNotification
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
 import net.fennmata.cnt.lab1.common.FilePacket
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
+import net.fennmata.cnt.lab1.common.KeepAlivePing
 import net.fennmata.cnt.lab1.common.MessagePacket
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
@@ -17,6 +21,7 @@ import net.fennmata.cnt.lab1.common.readPacket
 import net.fennmata.cnt.lab1.common.readPacketSafely
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacket
+import net.fennmata.cnt.lab1.common.writePacketSafely
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.time.OffsetDateTime
@@ -53,6 +58,14 @@ object ChatClient : Application<ChatClient>() {
     }
 
     override suspend fun execute() {
+        coroutineScope.launch(Dispatchers.Default) {
+            while (isRunning && isKeptAlive) {
+                val keepAlivePacket = KeepAlivePacket(KeepAlivePing, OffsetDateTime.now())
+                socket.writePacketSafely(coroutineScope, keepAlivePacket) {} ?: continue
+                delay(1000L)
+            }
+        }
+
         while (isRunning) {
             val packet = socket.readPacketSafely(coroutineScope) {
                 WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
@@ -64,7 +77,7 @@ object ChatClient : Application<ChatClient>() {
                 is DisconnectionPacket -> process(packet)
                 is MessagePacket -> process(packet)
                 is FilePacket -> process(packet)
-                is KeepAlivePacket -> process(packet)
+                is KeepAlivePacket -> Unit
             }
         }
     }
@@ -74,6 +87,8 @@ object ChatClient : Application<ChatClient>() {
     }
 
     val socket = Socket()
+
+    var isKeptAlive = true
 
     lateinit var username: String
 
@@ -92,10 +107,6 @@ object ChatClient : Application<ChatClient>() {
     }
 
     private fun process(packet: FilePacket) = with(packet) {
-        // TODO
-    }
-
-    private fun process(packet: KeepAlivePacket) = with(packet) {
         // TODO
     }
 

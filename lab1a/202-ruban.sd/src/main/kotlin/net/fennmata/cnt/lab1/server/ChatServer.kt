@@ -3,8 +3,9 @@ package net.fennmata.cnt.lab1.server
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import net.fennmata.cnt.lab1.common.Application
 import net.fennmata.cnt.lab1.common.ConnectionApproved
@@ -117,6 +118,7 @@ object ChatServer : Application<ChatServer>() {
 
     private suspend fun connectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
         connections[clientSocket] = clientUsername
+        NotificationOutput.write("Client $clientUsername @ ${clientSocket.remoteSocketAddress} was connected.")
         val connectionNotification = ConnectionPacket(ConnectionNotification, timestamp, clientUsername)
         clientSockets.except(clientSocket).forEach {
             it.writePacketSafely(coroutineScope, connectionNotification) { e ->
@@ -128,13 +130,13 @@ object ChatServer : Application<ChatServer>() {
                 )
             }
         }
-        NotificationOutput.write("Client $clientUsername @ ${clientSocket.remoteSocketAddress} was connected.")
     }
 
     private suspend fun disconnectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
         val deferred = coroutineScope.async(Dispatchers.IO) { clientSocket.close() }
         deferred.await()
         connections.remove(clientSocket)
+        NotificationOutput.write("Client $clientUsername @ ${clientSocket.remoteSocketAddress} was disconnected.")
         val disconnectionNotification = DisconnectionPacket(DisconnectionNotification, timestamp, clientUsername)
         clientSockets.forEach {
             it.writePacketSafely(coroutineScope, disconnectionNotification) { e ->
@@ -146,41 +148,41 @@ object ChatServer : Application<ChatServer>() {
                 )
             }
         }
-        NotificationOutput.write("Client $clientUsername @ ${clientSocket.remoteSocketAddress} was disconnected.")
     }
 
     private suspend fun Socket.serve() = coroutineScope {
-        while (isActive) {
-            val packet = readPacketSafely(this) {
-                WarningOutput.write("Connection to $remoteSocketAddress was closed [e: ${it.message}].")
-                disconnectClient(
-                    this@serve,
-                    OffsetDateTime.now(),
-                    connections[this@serve] ?: throw IllegalStateException("No username found for a client")
-                )
-                cancel("Connection closed")
-            } ?: continue
+        var isServing = true
+
+        suspend fun Socket.stop(e: SocketException) {
+            if (!isServing) return
+            isServing = false
+
+            WarningOutput.write("Connection to $remoteSocketAddress was closed [e: ${e.message}].")
+            disconnectClient(
+                this@serve,
+                OffsetDateTime.now(),
+                connections[this@serve] ?: throw IllegalStateException("No username found for a client")
+            )
+            cancel("Connection closed")
+        }
+
+        while (isServing) {
+            val keepAliveCheck = launch(Dispatchers.Default) {
+                delay(2000L)
+                stop(SocketException("Keep-alive check was failed by the client"))
+            }
+
+            val packet = readPacketSafely(this) { stop(it) } ?: continue
+            keepAliveCheck.cancelAndJoin()
 
             when (packet) {
-                is ConnectionPacket -> process(packet)
-                is DisconnectionPacket -> process(packet)
+                is ConnectionPacket -> Unit
+                is DisconnectionPacket -> Unit
                 is MessagePacket -> process(packet)
                 is FilePacket -> process(packet)
-                is KeepAlivePacket -> process(packet)
+                is KeepAlivePacket -> Unit
             }
         }
-    }
-
-    private suspend fun Socket.process(packet: ConnectionPacket) = with(packet) {
-        val timestamp = OffsetDateTime.now()
-
-        // TODO
-    }
-
-    private suspend fun Socket.process(packet: DisconnectionPacket) = with(packet) {
-        val timestamp = OffsetDateTime.now()
-
-        // TODO
     }
 
     private suspend fun Socket.process(packet: MessagePacket) = with(packet) {
@@ -192,10 +194,6 @@ object ChatServer : Application<ChatServer>() {
     private suspend fun Socket.process(packet: FilePacket) = with(packet) {
         val timestamp = OffsetDateTime.now()
 
-        // TODO
-    }
-
-    private suspend fun Socket.process(packet: KeepAlivePacket) = with(packet) {
         // TODO
     }
 
