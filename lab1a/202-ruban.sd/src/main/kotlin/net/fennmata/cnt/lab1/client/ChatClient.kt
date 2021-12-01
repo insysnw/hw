@@ -14,11 +14,11 @@ import net.fennmata.cnt.lab1.common.MessagePacket
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.readPacket
+import net.fennmata.cnt.lab1.common.readPacketSafely
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacket
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.net.SocketException
 import java.time.OffsetDateTime
 
 object ChatClient : Application<ChatClient>() {
@@ -54,10 +54,9 @@ object ChatClient : Application<ChatClient>() {
 
     override suspend fun execute() {
         while (isRunning) {
-            val packet = try { socket.readPacket() } catch (e: SocketException) {
-                WarningOutput.write("The connection to the server was closed [exception: ${e.message}].")
+            val packet = socket.readPacketSafely(coroutineScope) {
+                WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
                 close()
-                null
             } ?: continue
 
             when (packet) {

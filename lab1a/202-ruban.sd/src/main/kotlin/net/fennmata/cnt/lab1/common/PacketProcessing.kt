@@ -1,5 +1,8 @@
 package net.fennmata.cnt.lab1.common
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -71,6 +74,7 @@ fun Socket.readPacket(): Packet<*>? {
     return try {
         getInputStream().readPacket()
     } catch (e: IOException) {
+        close()
         throw SocketException(e.message)
     }
 }
@@ -80,8 +84,40 @@ fun Socket.writePacket(packet: Packet<*>) {
     try {
         getOutputStream().writePacket(packet)
     } catch (e: IOException) {
+        close()
         throw SocketException(e.message)
     }
+}
+
+suspend fun Socket.readPacketSafely(
+    coroutineScope: CoroutineScope,
+    doIfReadFailed: suspend (SocketException) -> Unit
+): Packet<*>? {
+    val deferred = coroutineScope.async(Dispatchers.IO) {
+        try {
+            readPacket()
+        } catch (e: SocketException) {
+            doIfReadFailed(e)
+            null
+        }
+    }
+    return deferred.await()
+}
+
+suspend fun Socket.writePacketSafely(
+    coroutineScope: CoroutineScope,
+    packet: Packet<*>,
+    doIfWriteFailed: suspend (SocketException) -> Unit
+): Unit? {
+    val deferred = coroutineScope.async(Dispatchers.IO) {
+        try {
+            writePacket(packet)
+        } catch (e: SocketException) {
+            doIfWriteFailed(e)
+            null
+        }
+    }
+    return deferred.await()
 }
 
 private fun List<Byte>.toNumberWithoutSign(): Long {

@@ -50,7 +50,7 @@ abstract class Application<T : Application<T>> : Runnable, Closeable {
             }
         } catch (e: Exception) {
             if (e is CancellationException)
-                WarningOutput.write("Coroutines were cancelled [exception: ${e.message}].")
+                WarningOutput.write("Coroutines were cancelled [e: ${e.message}].")
             else
                 e.printStackTrace()
         } finally {

@@ -19,9 +19,9 @@ import net.fennmata.cnt.lab1.common.KeepAlivePacket
 import net.fennmata.cnt.lab1.common.MessagePacket
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
-import net.fennmata.cnt.lab1.common.readPacket
+import net.fennmata.cnt.lab1.common.readPacketSafely
 import net.fennmata.cnt.lab1.common.write
-import net.fennmata.cnt.lab1.common.writePacket
+import net.fennmata.cnt.lab1.common.writePacketSafely
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
@@ -48,8 +48,10 @@ object ChatServer : Application<ChatServer>() {
         while (isRunning) {
             NotificationOutput.write("Listening to new connections ...")
             val clientSocketDeferred = coroutineScope.async(Dispatchers.IO) {
-                try { serverSocket.accept() } catch (e: SocketException) {
-                    WarningOutput.write("The server socket was closed [exception: ${e.message}].")
+                try {
+                    serverSocket.accept()
+                } catch (e: SocketException) {
+                    WarningOutput.write("The server socket was closed [e: ${e.message}].")
                     close()
                     null
                 }
@@ -58,11 +60,8 @@ object ChatServer : Application<ChatServer>() {
 
             NotificationOutput.write("A TCP connection to ${clientSocket.remoteSocketAddress} was accepted.")
 
-            val connectionRequest = try { clientSocket.readPacket() } catch (e: SocketException) {
-                WarningOutput.write(
-                    "Connection to ${clientSocket.remoteSocketAddress} was closed [exception: ${e.message}]."
-                )
-                null
+            val connectionRequest = clientSocket.readPacketSafely(coroutineScope) {
+                WarningOutput.write("Connection to ${clientSocket.remoteSocketAddress} was closed [e: ${it.message}].")
             } ?: continue
             val timestamp = OffsetDateTime.now()
 
@@ -83,17 +82,19 @@ object ChatServer : Application<ChatServer>() {
             }
             if (!isRequestCorrect) {
                 val connectionRejection = ConnectionPacket(ConnectionRejected, timestamp, connectionRequest.clientName)
-                clientSocket.writePacket(connectionRejection)
+                clientSocket.writePacketSafely(coroutineScope, connectionRejection) {
+                    WarningOutput.write("Connection to ${clientSocket.remoteSocketAddress} was closed [e: ${it.message}].")
+                }
+                val deferred = coroutineScope.async(Dispatchers.IO) { clientSocket.close() }
+                deferred.await()
                 continue
             }
 
             val connectionApprovement = ConnectionPacket(ConnectionApproved, timestamp, connectionRequest.clientName)
-            try { clientSocket.writePacket(connectionApprovement) } catch (e: SocketException) {
-                WarningOutput.write(
-                    "Connection to ${clientSocket.remoteSocketAddress} was closed [exception: ${e.message}]."
-                )
-                null
+            clientSocket.writePacketSafely(coroutineScope, connectionApprovement) {
+                WarningOutput.write("Connection to ${clientSocket.remoteSocketAddress} was closed [e: ${it.message}].")
             } ?: continue
+
             connectClient(clientSocket, timestamp, connectionRequest.clientName)
             coroutineScope.launch(Dispatchers.Default) { clientSocket.serve() }
         }
@@ -114,30 +115,50 @@ object ChatServer : Application<ChatServer>() {
 
     private fun <T> Iterable<T>.except(element: T) = filter { it != element }
 
-    private fun connectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
+    private suspend fun connectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
         connections[clientSocket] = clientUsername
         val connectionNotification = ConnectionPacket(ConnectionNotification, timestamp, clientUsername)
-        clientSockets.except(clientSocket).forEach { it.writePacket(connectionNotification) }
+        clientSockets.except(clientSocket).forEach {
+            it.writePacketSafely(coroutineScope, connectionNotification) { e ->
+                WarningOutput.write("Connection to ${it.remoteSocketAddress} was closed [e: ${e.message}].")
+                disconnectClient(
+                    it,
+                    OffsetDateTime.now(),
+                    connections[it] ?: throw IllegalStateException("No username found for a client")
+                )
+            }
+        }
+        NotificationOutput.write("Client $clientUsername @ ${clientSocket.remoteSocketAddress} was connected.")
     }
 
-    private fun disconnectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
-        clientSocket.close()
+    private suspend fun disconnectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
+        val deferred = coroutineScope.async(Dispatchers.IO) { clientSocket.close() }
+        deferred.await()
         connections.remove(clientSocket)
         val disconnectionNotification = DisconnectionPacket(DisconnectionNotification, timestamp, clientUsername)
-        clientSockets.forEach { it.writePacket(disconnectionNotification) }
+        clientSockets.forEach {
+            it.writePacketSafely(coroutineScope, disconnectionNotification) { e ->
+                WarningOutput.write("Connection to ${it.remoteSocketAddress} was closed [e: ${e.message}].")
+                disconnectClient(
+                    it,
+                    OffsetDateTime.now(),
+                    connections[it] ?: throw IllegalStateException("No username found for a client")
+                )
+            }
+        }
+        NotificationOutput.write("Client $clientUsername @ ${clientSocket.remoteSocketAddress} was disconnected.")
     }
 
     private suspend fun Socket.serve() = coroutineScope {
         while (isActive) {
-            val packet = try { readPacket() } catch (e: SocketException) {
-                WarningOutput.write("Connection to $remoteSocketAddress was closed [exception: ${e.message}].")
+            val packet = readPacketSafely(this) {
+                WarningOutput.write("Connection to $remoteSocketAddress was closed [e: ${it.message}].")
                 disconnectClient(
                     this@serve,
                     OffsetDateTime.now(),
-                    connections[this@serve] ?: throw IllegalStateException("No username found for a client!")
+                    connections[this@serve] ?: throw IllegalStateException("No username found for a client")
                 )
                 cancel("Connection closed")
-                null
             } ?: continue
 
             when (packet) {
@@ -150,31 +171,31 @@ object ChatServer : Application<ChatServer>() {
         }
     }
 
-    private fun Socket.process(packet: ConnectionPacket) = with(packet) {
+    private suspend fun Socket.process(packet: ConnectionPacket) = with(packet) {
         val timestamp = OffsetDateTime.now()
 
         // TODO
     }
 
-    private fun Socket.process(packet: DisconnectionPacket) = with(packet) {
+    private suspend fun Socket.process(packet: DisconnectionPacket) = with(packet) {
         val timestamp = OffsetDateTime.now()
 
         // TODO
     }
 
-    private fun Socket.process(packet: MessagePacket) = with(packet) {
+    private suspend fun Socket.process(packet: MessagePacket) = with(packet) {
         val timestamp = OffsetDateTime.now()
 
         // TODO
     }
 
-    private fun Socket.process(packet: FilePacket) = with(packet) {
+    private suspend fun Socket.process(packet: FilePacket) = with(packet) {
         val timestamp = OffsetDateTime.now()
 
         // TODO
     }
 
-    private fun Socket.process(packet: KeepAlivePacket) = with(packet) {
+    private suspend fun Socket.process(packet: KeepAlivePacket) = with(packet) {
         // TODO
     }
 
