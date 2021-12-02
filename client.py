@@ -1,5 +1,5 @@
 import datetime
-import os.path
+import os
 import re
 import socket
 import sys
@@ -27,6 +27,7 @@ print("Welcome to TCP chat!")
 input_name: str = input("Please, enter your nickname: ")
 nickname: bytes = input_name.encode('utf-8')
 nickname_len: bytes = len(nickname).to_bytes(2, byteorder='big')
+server.send(nickname_len + nickname)
 
 
 def get_package(sock):
@@ -49,7 +50,6 @@ def write():
                 enc_file_name = file_name.encode('utf-8')
                 file_name_len = len(enc_file_name).to_bytes(2, byteorder='big')
                 file_len = file_size.to_bytes(2, byteorder='big')
-                server.send(nickname_len + nickname)
                 server.send(file_name_len + enc_file_name)
                 server.send(file_len + file_data)
                 print('File {} sent!'.format(file_name))
@@ -59,7 +59,6 @@ def write():
         else:
             enc_message: bytes = message.encode('utf-8')
             message_len: bytes = len(enc_message).to_bytes(2, byteorder='big')
-            server.send(nickname_len + nickname)
             server.send(message_len + enc_message)
             server.send(bytes([0]))
             if message == ":q":
@@ -86,6 +85,9 @@ def receive():
                 file.close()
             elif message == 'disconnected':
                 print('{} | {} was disconnected'.format(loc_time.strftime('%H:%M:%S'), nick))
+            elif message == 'nickname_error':
+                print('Nickname {} is already in use!'.format(input_name))
+                close()
             else:
                 print('{} | {}: {}'.format(loc_time.strftime('%H:%M:%S'), nick, message))
 
@@ -95,7 +97,7 @@ def receive():
 
 def close():
     server.close()
-    sys.exit()
+    os._exit(0)
 
 
 # start thread for listening and sending

@@ -15,7 +15,7 @@ server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind((host, port))
 server.listen(10)
 
-clients = []
+clients = {}
 
 print("Server started!")
 
@@ -46,18 +46,26 @@ def read_part(client):
 
 def handle(client, address):
     if client not in clients:
-        clients.append(client)
-        print("{} | Connected {}".format(time.strftime('%H:%M', time.localtime()), client.getpeername()))
+        nickname = read_part(client)
+        if nickname in clients.values():
+            enc_time = int(datetime.datetime.utcnow().timestamp()).to_bytes(4, byteorder='big')
+            error_message = 'nickname_error'
+            header = len(error_message).to_bytes(2, byteorder='big')
+            client.send(enc_time + nickname['header'] + nickname['data'] + header + error_message.encode('utf-8') + bytes([0]))
+            return
+        else:
+            clients[client] = nickname
+            print("{} | Connected {}".format(time.strftime('%H:%M', time.localtime()), client.getpeername()))
 
     while True:
         enc_time = int(datetime.datetime.utcnow().timestamp()).to_bytes(4, byteorder='big')
-        nickname = read_part(client)
+        nickname = clients[client]
         message = read_part(client)
         file = read_part(client)
-        if len(message['data']) == 0 or len(nickname['data']) == 0 or message['data'].decode('utf-8') == CLOSE_MESSAGE:
+        if len(message['data']) == 0 or message['data'].decode('utf-8') == CLOSE_MESSAGE:
             left_message = 'disconnected'
             print('Connection from {} {} was closed'.format(nickname['data'].decode('utf-8'), client.getpeername()))
-            clients.remove(client)
+            del clients[client]
             left_message_len = len(left_message).to_bytes(2, byteorder='big')
             broadcast(client, nickname, enc_time, left_message_len, left_message.encode('utf-8'), file['header'], file['data'])
             break
