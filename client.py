@@ -32,20 +32,7 @@ nickname_len: bytes = len(nickname).to_bytes(2, byteorder='big')
 def get_package(sock):
     header: bytes = sock.recv(2)
     length: int = int.from_bytes(header, byteorder='big', signed=False)
-    return sock.recv(length).decode('utf-8')
-
-
-def write_file(sock, filename):
-    header: bytes = sock.recv(2)
-    length: int = int.from_bytes(header, byteorder='big', signed=False)
-    data = sock.recv(length).decode('uft-8')
-    if len(data) > 0:
-        file = open(filename, "w")
-        file.write(data)
-        print('Got file {}'.format(filename))
-        file.close()
-    else:
-        print('File length is {}'.format(len(data)))
+    return sock.recv(length)
 
 
 # send to server
@@ -57,15 +44,15 @@ def write():
             file_name: str = file_path[1].strip()
             if os.path.exists(file_name):
                 file_size = os.path.getsize(file_name)
-                file = open(file_name, "r")
-                file_data = file.read()
+                file = open(file_name, "rb")
+                file_data = file.read(file_size)
                 enc_file_name = file_name.encode('utf-8')
                 file_name_len = len(enc_file_name).to_bytes(2, byteorder='big')
                 file_len = file_size.to_bytes(2, byteorder='big')
                 server.send(nickname_len + nickname)
                 server.send(file_name_len + enc_file_name)
-                server.send(file_len + file_data.encode('utf-8'))
-                print("File {} sent!", file_name)
+                server.send(file_len + file_data)
+                print('File {} sent!'.format(file_name))
                 file.close()
             else:
                 print("File does not exist!")
@@ -86,11 +73,14 @@ def receive():
             message_time: int = int.from_bytes(server.recv(4), byteorder='big', signed=False)
             message_time -= time.timezone
             loc_time: datetime = datetime.datetime.fromtimestamp(message_time)
-            nick: str = get_package(server)
-            message: str = get_package(server)
+            nick: str = get_package(server).decode('utf-8')
+            message: str = get_package(server).decode('utf-8')
             file_data = get_package(server)
-            if len(file_data) > 0:
-                file = open(message, "w")
+            if len(nick) <= 0 and len(message) <= 0:
+                print('Got error message from server, disconnected')
+                close()
+            elif len(file_data) > 0:
+                file = open(message, "wb")
                 file.write(file_data)
                 print('Got file {}'.format(message))
                 file.close()
