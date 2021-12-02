@@ -1,9 +1,13 @@
 import datetime
+import os.path
+import re
 import socket
 import sys
 import threading
 import time
 from threading import Thread
+
+SEND_COMMAND = "send"
 
 # host and port choosing
 if len(sys.argv) == 3:
@@ -31,17 +35,49 @@ def get_package(sock):
     return sock.recv(length).decode('utf-8')
 
 
+def write_file(sock, filename):
+    header: bytes = sock.recv(2)
+    length: int = int.from_bytes(header, byteorder='big', signed=False)
+    data = sock.recv(length).decode('uft-8')
+    if len(data) > 0:
+        file = open(filename, "w")
+        file.write(data)
+        print('Got file {}'.format(filename))
+        file.close()
+    else:
+        print('File length is {}'.format(len(data)))
+
+
 # send to server
 def write():
     while True:
         message: str = input()
-        enc_message: bytes = message.encode('utf-8')
-        message_len: bytes = len(enc_message).to_bytes(2, byteorder='big')
-        server.send(nickname_len + nickname)
-        server.send(message_len + enc_message)
-        if message == ":q":
-            print("Disconnected")
-            close()
+        if re.match("^send .*\.\w*\s*$", message):
+            file_path: list[str] = message.split(" ")
+            file_name: str = file_path[1].strip()
+            if os.path.exists(file_name):
+                file_size = os.path.getsize(file_name)
+                file = open(file_name, "r")
+                file_data = file.read()
+                enc_file_name = file_name.encode('utf-8')
+                file_name_len = len(enc_file_name).to_bytes(2, byteorder='big')
+                file_len = file_size.to_bytes(2, byteorder='big')
+                server.send(nickname_len + nickname)
+                server.send(file_name_len + enc_file_name)
+                server.send(file_len + file_data.encode('utf-8'))
+                print("File {} sent!", file_name)
+                file.close()
+            else:
+                print("File does not exist!")
+        else:
+            enc_message: bytes = message.encode('utf-8')
+            message_len: bytes = len(enc_message).to_bytes(2, byteorder='big')
+            server.send(nickname_len + nickname)
+            server.send(message_len + enc_message)
+            server.send(bytes([0]))
+            if message == ":q":
+                print("Disconnected")
+                close()
 
 
 def receive():
@@ -52,7 +88,16 @@ def receive():
             loc_time: datetime = datetime.datetime.fromtimestamp(message_time)
             nick: str = get_package(server)
             message: str = get_package(server)
-            print('{} | {}: {}'.format(loc_time.strftime('%H:%M:%S'), nick, message))
+            file_data = get_package(server)
+            if len(file_data) > 0:
+                file = open(message, "w")
+                file.write(file_data)
+                print('Got file {}'.format(message))
+                file.close()
+            elif message == 'disconnected':
+                print('{} | {} was disconnected'.format(loc_time.strftime('%H:%M:%S'), nick))
+            else:
+                print('{} | {}: {}'.format(loc_time.strftime('%H:%M:%S'), nick, message))
 
         except Exception as e:
             close()

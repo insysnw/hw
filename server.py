@@ -21,9 +21,10 @@ print("Server started!")
 
 
 # send to all clients
-def broadcast(sock, nick, t, msg_header, msg):
+def broadcast(sock, nick, t, msg_header, msg, file_header, file):
     for tmp in clients:
-        tmp.send(t + nick['header'] + nick['data'] + msg_header + msg)
+        if len(file) <= 0 or sock != tmp:
+            tmp.send(t + nick['header'] + nick['data'] + msg_header + msg + file_header + file)
 
 
 # receive messages from clients
@@ -52,19 +53,25 @@ def handle(client, address):
         enc_time = int(datetime.datetime.utcnow().timestamp()).to_bytes(4, byteorder='big')
         nickname = read_part(client)
         message = read_part(client)
-        if len(message) == 0 or message['data'].decode('utf-8') == CLOSE_MESSAGE:
+        file = read_part(client)
+        if len(message['data']) == 0 or len(nickname['data']) == 0 or message['data'].decode('utf-8') == CLOSE_MESSAGE:
             left_message = 'disconnected'
             print('Connection from {} {} was closed'.format(nickname['data'].decode('utf-8'), client.getpeername()))
             clients.remove(client)
-            for tmp in clients:
-                tmp.send(enc_time + nickname['header'] + nickname['data'] + len(left_message).to_bytes(2, byteorder='big') + left_message.encode('utf-8'))
+            left_message_len = len(left_message).to_bytes(2, byteorder='big')
+            broadcast(client, nickname, enc_time, left_message_len, left_message.encode('utf-8'), file['header'], file['data'])
             break
+        elif len(file['data']) > 0:
+            print('Got file from {} with name {} and size {}'.format(nickname['data'].decode('utf-8'),
+                                                                     message['data'].decode('utf-8'),
+                                                                     int.from_bytes(file['header'], byteorder='big', signed=False)))
+            broadcast(client, nickname, enc_time, message['header'], message['data'], file['header'], file['data'])
         else:
             print('{} | {}: {}'.format(
                 datetime.datetime.utcnow().strftime('%H:%M:%S'),
                 nickname['data'].decode('utf-8'),
                 message['data'].decode('utf-8')))
-            broadcast(client, nickname, enc_time, message['header'], message['data'])
+            broadcast(client, nickname, enc_time, message['header'], message['data'], file['header'], file['data'])
 
 
 while True:
