@@ -2,7 +2,7 @@ package net.fennmata.cnt.lab1.client
 
 import net.fennmata.cnt.lab1.common.ApplicationResponse
 import net.fennmata.cnt.lab1.common.FileDownloadRequest
-import net.fennmata.cnt.lab1.common.FilePacket
+import net.fennmata.cnt.lab1.common.FileTransferPacket
 import net.fennmata.cnt.lab1.common.FileUploadRequest
 import net.fennmata.cnt.lab1.common.MessageOutput
 import net.fennmata.cnt.lab1.common.MessagePacket
@@ -39,7 +39,7 @@ object SendMessage : ApplicationResponse<ChatClient> {
         ChatClient.socket.writePacketSafely(ChatClient.coroutineScope, messagePacket) {
             WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
             ChatClient.close()
-        }
+        } ?: return
         MessageOutput.write(message, timestamp, ChatClient.username)
     }
 }
@@ -54,15 +54,21 @@ object UploadFile : ApplicationResponse<ChatClient> {
         }
 
         val fileName = file.name
-        val fileLength = file.length()
+        if (file.length().toInt().toLong() != file.length()) {
+            WarningOutput.write("Your file is too big for upload.")
+            return
+        }
+        val fileLength = file.length().toInt()
 
         val requestTimestamp = OffsetDateTime.now()
-        val uploadRequest = FilePacket(FileUploadRequest, requestTimestamp, ChatClient.username, fileName, fileLength)
+        val uploadRequest = FileTransferPacket(
+            FileUploadRequest, requestTimestamp, ChatClient.username, fileName, fileLength
+        )
         ChatClient.socket.writePacketSafely(ChatClient.coroutineScope, uploadRequest) {
             WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
             ChatClient.close()
-        }
-        ChatClient.fileTransferQueue += ChatClient.FileUpload("${ChatClient.username}/$fileName")
+        } ?: return
+        ChatClient.fileTransferQueue += ChatClient.FileUpload(file)
         NotificationOutput.write("An upload request of $fileName (${fileLength.readable}) was sent to the server.")
     }
 }
@@ -79,12 +85,12 @@ object DownloadFile : ApplicationResponse<ChatClient> {
         val (fileAuthor, fileName) = args
 
         val requestTimestamp = OffsetDateTime.now()
-        val downloadRequest = FilePacket(FileDownloadRequest, requestTimestamp, fileAuthor, fileName, 0)
+        val downloadRequest = FileTransferPacket(FileDownloadRequest, requestTimestamp, fileAuthor, fileName, 0)
         ChatClient.socket.writePacketSafely(ChatClient.coroutineScope, downloadRequest) {
             WarningOutput.write("The connection to the server was closed [e: ${it.message}].")
             ChatClient.close()
-        }
-        ChatClient.fileTransferQueue += ChatClient.FileDownload("$fileAuthor/$fileName")
+        } ?: return
+        ChatClient.fileTransferQueue += ChatClient.FileDownload(fileAuthor, fileName)
         NotificationOutput.write("An download request of $fileName by $fileAuthor was sent to the server.")
     }
 

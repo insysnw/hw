@@ -43,32 +43,32 @@ class FilePacket(
     state: FileState,
     timestamp: OffsetDateTime,
     override val clientName: String,
-    val fileName: String,
-    val fileLength: Long
+    val fileContents: ByteArray
 ) : Packet<FileState>(state, timestamp) {
-    override val object1 = fileName.toByteArray()
-    override val object2: ByteArray = ByteBuffer.allocate(8).putLong(fileLength).array()
-}
-
-class FileTransferInfoPacket(
-    state: FileTransferInfoState,
-    timestamp: OffsetDateTime,
-    override val clientName: String,
-    val fullFileName: String,
-    val socketPort: Int
-) : Packet<FileTransferInfoState>(state, timestamp) {
-    override val object1 = fullFileName.toByteArray()
-    override val object2: ByteArray = ByteBuffer.allocate(4).putInt(socketPort).array()
+    override val object1 = fileContents
+    override val object2 = byteArrayOf()
 }
 
 class FileTransferPacket(
     state: FileTransferState,
     timestamp: OffsetDateTime,
     override val clientName: String,
-    val file: ByteArray
+    val fileName: String,
+    val fileLength: Int
 ) : Packet<FileTransferState>(state, timestamp) {
-    override val object1 = file
-    override val object2 = byteArrayOf()
+    override val object1 = fileName.toByteArray()
+    override val object2: ByteArray = ByteBuffer.allocate(4).putInt(fileLength).array()
+}
+
+class FileTransferResponsePacket(
+    state: FileTransferResponseState,
+    timestamp: OffsetDateTime,
+    override val clientName: String,
+    val fileName: String,
+    val socketPort: Int
+) : Packet<FileTransferResponseState>(state, timestamp) {
+    override val object1 = fileName.toByteArray()
+    override val object2: ByteArray = ByteBuffer.allocate(4).putInt(socketPort).array()
 }
 
 class KeepAlivePacket(

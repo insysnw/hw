@@ -12,7 +12,7 @@ private val possibleFileSizeUnits = listOf("bytes", "Kbytes", "Mbytes", "Gbytes"
 /**
  * To be used with file sizes.
  */
-val Long.readable: String get() {
+val Int.readable: String get() {
     val fileSizeUnitIndex = min(
         floor(log(this.toDouble(), 1024.0)).toInt(),
         possibleFileSizeUnits.size - 1

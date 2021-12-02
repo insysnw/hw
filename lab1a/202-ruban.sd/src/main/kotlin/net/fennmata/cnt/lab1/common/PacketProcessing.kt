@@ -14,25 +14,25 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 
 fun InputStream.readPacket(): Packet<*>? {
-    val header = readNBytes(16)
-    if (header.size < 16) throw IOException("Stream closed before a full packet was read")
-    val dataLength = header.slice(2..3).toIntWithoutSign()
+    val header = readNBytes(24)
+    if (header.size < 24) throw IOException("Stream closed before a full packet was read")
+    val dataLength = header.slice(0..3).toIntWithoutSign()
     val data = readNBytes(dataLength)
     if (data.size < dataLength) throw IOException("Stream closed before a full packet was read")
 
-    val version = header[0].toIntWithoutSign()
-    if (version != 1) return null
+    val protocolVersion = header[4].toIntWithoutSign()
+    if (protocolVersion != 1) return null
 
-    val kind = header[1].toIntWithoutSign()
+    val kind = header[5].toIntWithoutSign()
     val (typeValue, stateValue) = ((kind shr 4) and 0xF) to (kind and 0xF)
     val state = getStatesByType(typeValue)?.getStateByValue(stateValue) ?: return null
 
-    val timestampSeconds = header.slice(4..11).toLongWithoutSign()
+    val timestampSeconds = header.slice(8..15).toLongWithoutSign()
     val timestampInstant = Instant.ofEpochSecond(timestampSeconds)
     val timestamp = OffsetDateTime.ofInstant(timestampInstant, ZoneId.systemDefault())
 
-    val pointer1 = header.slice(12..13).toIntWithoutSign()
-    val pointer2 = header.slice(14..15).toIntWithoutSign()
+    val pointer1 = header.slice(16..19).toIntWithoutSign()
+    val pointer2 = header.slice(20..23).toIntWithoutSign()
 
     if (pointer1 > pointer2 || pointer2 > dataLength) return null
     val clientName = data.decodeToString(0, pointer1)
@@ -45,13 +45,13 @@ fun InputStream.readPacket(): Packet<*>? {
         is MessageState -> MessagePacket(
             state, timestamp, clientName, object1.decodeToString()
         )
-        is FileState -> FilePacket(
-            state, timestamp, clientName, object1.decodeToString(), object2.toLongWithoutSign()
-        )
-        is FileTransferInfoState -> FileTransferInfoPacket(
+        is FileState -> FilePacket(state, timestamp, clientName, object1)
+        is FileTransferState -> FileTransferPacket(
             state, timestamp, clientName, object1.decodeToString(), object2.toIntWithoutSign()
         )
-        is FileTransferState -> FileTransferPacket(state, timestamp, clientName, object1)
+        is FileTransferResponseState -> FileTransferResponsePacket(
+            state, timestamp, clientName, object1.decodeToString(), object2.toIntWithoutSign()
+        )
         is KeepAliveState -> KeepAlivePacket(state, timestamp)
     }
 }
@@ -59,13 +59,14 @@ fun InputStream.readPacket(): Packet<*>? {
 fun OutputStream.writePacket(packet: Packet<*>) {
     val buffer: ByteBuffer
     with(packet) {
-        buffer = ByteBuffer.allocate(16 + dataLength)
-        buffer.put(1) // version
+        buffer = ByteBuffer.allocate(24 + dataLength)
+        buffer.putInt(dataLength)
+        buffer.put(1) // protocol version
         buffer.put(((typeValue shl 4) or state.value).toByte()) // type + state
-        buffer.putShort(dataLength.toShort())
+        buffer.putShort(0) // padding
         buffer.putLong(timestamp.toEpochSecond())
-        buffer.putShort(clientName.length.toShort()) // pointer1
-        buffer.putShort((clientName.length + object1.size).toShort()) // pointer2
+        buffer.putInt(clientName.length) // pointer1
+        buffer.putInt(clientName.length + object1.size) // pointer2
         buffer.put(clientName.toByteArray())
         buffer.put(object1)
         buffer.put(object2)
@@ -145,8 +146,8 @@ private enum class PacketType(val packetValue: Int) {
     DISCONNECTION(1),
     MESSAGE(2),
     FILE(3),
-    FILE_TRANSFER_INFO(4),
-    FILE_TRANSFER(5),
+    FILE_TRANSFER(4),
+    FILE_TRANSFER_RESPONSE(5),
     KEEPALIVE(6)
 }
 
@@ -155,8 +156,8 @@ private val PacketState.typeValue get() = when (this) {
     is DisconnectionState -> PacketType.DISCONNECTION.packetValue
     is MessageState -> PacketType.MESSAGE.packetValue
     is FileState -> PacketType.FILE.packetValue
-    is FileTransferInfoState -> PacketType.FILE_TRANSFER_INFO.packetValue
-    is FileTransfer -> PacketType.FILE_TRANSFER.packetValue
+    is FileTransferState -> PacketType.FILE_TRANSFER.packetValue
+    is FileTransferResponseState -> PacketType.FILE_TRANSFER_RESPONSE.packetValue
     is KeepAliveState -> PacketType.KEEPALIVE.packetValue
 }
 
@@ -167,8 +168,8 @@ private fun getStatesByType(typeValue: Int) = when (typeValue) {
     PacketType.DISCONNECTION.packetValue -> disconnectionStates
     PacketType.MESSAGE.packetValue -> messageStates
     PacketType.FILE.packetValue -> fileStates
-    PacketType.FILE_TRANSFER_INFO.packetValue -> fileTransferInfoStates
     PacketType.FILE_TRANSFER.packetValue -> fileTransferStates
+    PacketType.FILE_TRANSFER_RESPONSE.packetValue -> fileTransferResponseStates
     PacketType.KEEPALIVE.packetValue -> keepAliveStates
     else -> null
 }

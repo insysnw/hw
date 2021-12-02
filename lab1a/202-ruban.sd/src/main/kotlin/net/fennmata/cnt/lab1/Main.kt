@@ -8,6 +8,7 @@ fun main(arguments: Array<String>) {
         null -> println("Please specify the application type: \"client\" or \"server\".")
         "client" -> {
             ChatClient.isKeptAlive = arguments.none { it == "--no-keep-alive" }
+            ChatClient.shouldOldFilesBeDeleted = arguments.none { it == "--keep-old-files" }
             ChatClient.use { it.run() }
         }
         "server" -> {

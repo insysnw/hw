@@ -16,12 +16,14 @@ import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
 import net.fennmata.cnt.lab1.common.DisconnectionPacket
+import net.fennmata.cnt.lab1.common.FileDownloadApproved
 import net.fennmata.cnt.lab1.common.FileDownloadRejected
-import net.fennmata.cnt.lab1.common.FileDownloadRequest
 import net.fennmata.cnt.lab1.common.FileNotification
 import net.fennmata.cnt.lab1.common.FilePacket
-import net.fennmata.cnt.lab1.common.FileTransferInfoPacket
+import net.fennmata.cnt.lab1.common.FileSent
 import net.fennmata.cnt.lab1.common.FileTransferPacket
+import net.fennmata.cnt.lab1.common.FileTransferResponsePacket
+import net.fennmata.cnt.lab1.common.FileUploadApproved
 import net.fennmata.cnt.lab1.common.FileUploadRejected
 import net.fennmata.cnt.lab1.common.FileUploadRequest
 import net.fennmata.cnt.lab1.common.KeepAlivePacket
@@ -132,6 +134,8 @@ object ChatServer : Application<ChatServer>() {
 
     private val fileStorage = File("files")
 
+    private val pendingFiles = mutableSetOf<String>()
+
     private fun <T> Iterable<T>.except(element: T) = filter { it != element }
 
     private suspend fun connectClient(clientSocket: Socket, timestamp: OffsetDateTime, clientUsername: String) {
@@ -197,9 +201,9 @@ object ChatServer : Application<ChatServer>() {
                 is ConnectionPacket -> Unit
                 is DisconnectionPacket -> Unit
                 is MessagePacket -> process(this, packet)
-                is FilePacket -> process(this, packet)
-                is FileTransferInfoPacket -> Unit
-                is FileTransferPacket -> Unit
+                is FilePacket -> Unit
+                is FileTransferPacket -> process(this, packet)
+                is FileTransferResponsePacket -> Unit
                 is KeepAlivePacket -> Unit
             }
         }
@@ -224,58 +228,124 @@ object ChatServer : Application<ChatServer>() {
         }
     }
 
-    private suspend fun Socket.process(scope: CoroutineScope, packet: FilePacket) = with(packet) {
+    private suspend fun Socket.process(scope: CoroutineScope, packet: FileTransferPacket) = with(packet) {
+        if (state is FileNotification) return@with
+
         val senderName = connections[this@process] ?: throw IllegalStateException("No username found for a client")
         val inputTimestamp = OffsetDateTime.now()
 
-        var isUpload = false
-        var isApproved = false
+        val isUpload = state is FileUploadRequest
+        val fullFileName = "${if (isUpload) senderName else clientName}/$fileName"
 
-        when (packet.state) {
-            is FileNotification -> return@with
-            is FileUploadRequest -> {
-                isUpload = true
-                NotificationOutput.write(
-                    "$senderName @ $remoteSocketAddress wants to upload $fileName (${fileLength.readable})."
-                )
-                if (File(fileStorage, "$senderName/$fileName").exists()) {
-                    NotificationOutput.write("File \"$senderName/$fileName\" already exists. Rejecting the request ...")
-                } else {
-                    NotificationOutput.write("Accepting the \"$senderName/$fileName\" upload request ...")
-                    isApproved = true
-                }
+        val isApproved = if (isUpload) {
+            NotificationOutput.write("$senderName @ $remoteSocketAddress wants to upload $fileName (${fileLength.readable}).")
+            if (File(fileStorage, fullFileName).exists() || fullFileName in pendingFiles) {
+                NotificationOutput.write("File \"$fullFileName\" either exists or is pending. Rejecting the request ...")
+                false
+            } else {
+                NotificationOutput.write("Accepting the \"$fullFileName\" upload request ...")
+                true
             }
-            is FileDownloadRequest -> {
-                NotificationOutput.write(
-                    "$senderName @ $remoteSocketAddress wants to download $fileName by $clientName."
-                )
-                if (!File(fileStorage, "$clientName/$fileName").exists()) {
-                    NotificationOutput.write("No file \"$clientName/$fileName\" was found. Rejecting the request ...")
-                } else {
-                    NotificationOutput.write("Accepting the \"$clientName/$fileName\" download request ...")
-                    isApproved = true
-                }
+        } else {
+            NotificationOutput.write("$senderName @ $remoteSocketAddress wants to download $fileName by $clientName.")
+            if (!File(fileStorage, fullFileName).exists()) {
+                NotificationOutput.write("No file \"$fullFileName\" was found. Rejecting the request ...")
+                false
+            } else {
+                NotificationOutput.write("Accepting the \"$fullFileName\" download request ...")
+                true
             }
         }
 
         if (!isApproved) {
-            val rejection = FileTransferInfoPacket(
+            val rejection = FileTransferResponsePacket(
                 if (isUpload) FileUploadRejected else FileDownloadRejected,
-                inputTimestamp,
-                senderName,
-                "${if (isUpload) senderName else clientName}/$fileName",
-                0
+                inputTimestamp, senderName, fullFileName, 0
             )
             writePacketSafely(scope, rejection) { e ->
                 WarningOutput.write("Connection to $remoteSocketAddress was closed [e: ${e.message}].")
-                disconnectClient(
-                    this@process,
-                    OffsetDateTime.now(),
-                    connections[this@process]
-                        ?: throw IllegalStateException("No username found for a client")
-                )
+                disconnectClient(this@process, OffsetDateTime.now(), senderName)
             }
             return@with
+        }
+
+        val fileInQuestion = File(fileStorage, fullFileName)
+        if (isUpload) { pendingFiles += fullFileName }
+
+        scope.launch(Dispatchers.Default) {
+            val fileTransferServerSocketDeferred = scope.async(Dispatchers.IO) { ServerSocket(0) }
+            val fileTransferServerSocket = fileTransferServerSocketDeferred.await()
+
+            val fileTransferClientSocket: Socket
+            fileTransferServerSocket.use {
+                val fileTransferClientSocketDeferred = scope.async(Dispatchers.IO) {
+                    try {
+                        it.accept()
+                    } catch (e: SocketException) {
+                        WarningOutput.write(
+                            "The file transfer server socket for $fullFileName was closed [e: ${e.message}]."
+                        )
+                        if (isUpload) { pendingFiles -= fullFileName }
+                        null
+                    }
+                }
+
+                val approvement = FileTransferResponsePacket(
+                    if (isUpload) FileUploadApproved else FileDownloadApproved,
+                    inputTimestamp, senderName, fullFileName, it.localPort
+                )
+                writePacketSafely(scope, approvement) { e ->
+                    WarningOutput.write("Connection to $remoteSocketAddress was closed [e: ${e.message}].")
+                    if (isUpload) { pendingFiles -= fullFileName }
+                    disconnectClient(this@process, OffsetDateTime.now(), senderName)
+                } ?: return@launch
+
+                fileTransferClientSocket = fileTransferClientSocketDeferred.await() ?: return@launch
+            }
+
+            fileTransferClientSocket.use {
+                if (isUpload) {
+                    val filePacket = fileTransferClientSocket.readPacketSafely(scope) { e ->
+                        WarningOutput.write("The file transfer of $fullFileName was interrupted [e: ${e.message}].")
+                        pendingFiles -= fullFileName
+                    } ?: return@launch
+                    if (filePacket !is FilePacket) {
+                        WarningOutput.write("The client has replied incorrectly to initiated file transfer.")
+                        pendingFiles -= fullFileName
+                        return@launch
+                    }
+                    fileInQuestion.parentFile.mkdir()
+                    fileInQuestion.writeBytes(filePacket.fileContents)
+                    pendingFiles -= fullFileName
+                    val fileNotification = FileTransferPacket(
+                        FileNotification, OffsetDateTime.now(), senderName, fileName, fileInQuestion.length().toInt()
+                    )
+                    clientSockets.forEach { clientSocket ->
+                        clientSocket.writePacketSafely(scope, fileNotification) { e ->
+                            WarningOutput.write("Connection to ${it.remoteSocketAddress} was closed [e: ${e.message}].")
+                            disconnectClient(
+                                clientSocket,
+                                OffsetDateTime.now(),
+                                connections[clientSocket]
+                                    ?: throw IllegalStateException("No username found for a client")
+                            )
+                        }
+                    }
+                    NotificationOutput.write(
+                        "Upload of $fullFileName (${fileInQuestion.length().toInt().readable}) was completed."
+                    )
+                } else {
+                    val filePacket = FilePacket(
+                        FileSent, OffsetDateTime.now(), senderName, fileInQuestion.readBytes()
+                    )
+                    it.writePacketSafely(scope, filePacket) { e ->
+                        WarningOutput.write("The file transfer of $fullFileName was interrupted [e: ${e.message}].")
+                    } ?: return@launch
+                    NotificationOutput.write(
+                        "Download of $fullFileName (${fileInQuestion.length().toInt().readable}) by $senderName was completed."
+                    )
+                }
+            }
         }
     }
 
