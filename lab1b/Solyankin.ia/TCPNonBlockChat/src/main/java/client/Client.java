@@ -209,7 +209,11 @@ public class Client {
                             String message = reader.readLine().trim();
                             if (!message.equals("")) {
                                 if (message.split(" ", 2)[0].equals(Phrases.CLIENT_COMMAND_FILE.getPhrase())) {
-                                    sendFile(message.split(" ", 2)[1], channel);
+                                    try {
+                                        sendFile(message.split(" ", 2)[1], channel);
+                                    } catch (ArrayIndexOutOfBoundsException e) {
+                                        readMessage("Client " + Phrases.CLIENT_INVALID_FILE_ERROR.getPhrase());
+                                    }
                                 } else {
                                     writeToSocket(channel, message.length(), message);
                                     if (message.toLowerCase().trim().equals(Phrases.CLIENT_COMMAND_QUIT.getPhrase())) {
@@ -253,7 +257,7 @@ public class Client {
         String regex = "[A-Za-z0-9\\n\\r\\t]*";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(userName);
-        if (matcher.matches()) {
+        if (matcher.matches() && !userName.isEmpty()) {
             return true;
         } else {
             readMessage(Phrases.CLIENT_INCORRECT_NAME_ERROR.getPhrase());
@@ -261,22 +265,26 @@ public class Client {
         }
     }
 
-    private void sendFile(String filePath, SocketChannel channel) throws IOException {
+    private void sendFile(String filePath, SocketChannel channel){
         File file = new File(filePath);
         if (file.length() > 5 * 1024 * 1024) {
             System.out.println(Phrases.CLIENT_INVALID_FILE_SIZE.getPhrase());
         } else {
             if (file.exists() && !file.isDirectory()) {
-                byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
-                buffer = ByteBuffer.wrap((Phrases.CLIENT_COMMAND_FILE.getPhrase() + " " + file.getName().length() + " " + file.getName() + " " + fileBytes.length + " ").getBytes());
-                channel.write(buffer);
-                buffer = ByteBuffer.allocate(5 * 1024 * 1024);
-                buffer.clear();
-                buffer = ByteBuffer.wrap(fileBytes);
-                channel.write(buffer);
-                readMessage(Phrases.CLIENT_FILE_SENDING.getPhrase() + fileBytes.length + " bytes)");
+                try {
+                    byte[] fileBytes = Files.readAllBytes(Paths.get(file.getAbsolutePath().trim()));
+                    buffer = ByteBuffer.wrap((Phrases.CLIENT_COMMAND_FILE.getPhrase() + " " + file.getName().length() + " " + file.getName() + " " + fileBytes.length + " ").getBytes());
+                    channel.write(buffer);
+                    buffer = ByteBuffer.allocate(5 * 1024 * 1024);
+                    buffer.clear();
+                    buffer = ByteBuffer.wrap(fileBytes);
+                    channel.write(buffer);
+                    readMessage(Phrases.CLIENT_FILE_SENDING.getPhrase() + fileBytes.length + " bytes)");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             } else {
-                System.out.println(Phrases.CLIENT_INVALID_FILE_ERROR.getPhrase());
+                readMessage("Client " + Phrases.CLIENT_INVALID_FILE_ERROR.getPhrase());
             }
         }
     }
