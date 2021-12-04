@@ -31,7 +31,7 @@ def broadcast(sock, nick, t, msg_header, msg, file_header, file):
 def read_part(client):
     while True:
         try:
-            header = client.recv(2)
+            header = client.recv(5)
         except Exception as e:
             print("Connection reset: {}".format(str(e)))
             return dict()
@@ -50,7 +50,7 @@ def handle(client, address):
         if nickname in clients.values():
             enc_time = int(datetime.datetime.utcnow().timestamp()).to_bytes(4, byteorder='big')
             error_message = 'nickname_error'
-            header = len(error_message).to_bytes(2, byteorder='big')
+            header = len(error_message).to_bytes(5, byteorder='big')
             client.send(enc_time + nickname['header'] + nickname['data'] + header + error_message.encode('utf-8') + bytes([0]))
             return
         else:
@@ -66,7 +66,7 @@ def handle(client, address):
             left_message = 'disconnected'
             print('Connection from {} {} was closed'.format(nickname['data'].decode('utf-8'), client.getpeername()))
             del clients[client]
-            left_message_len = len(left_message).to_bytes(2, byteorder='big')
+            left_message_len = len(left_message).to_bytes(5, byteorder='big')
             broadcast(client, nickname, enc_time, left_message_len, left_message.encode('utf-8'), file['header'], file['data'])
             break
         elif len(file['data']) > 0:

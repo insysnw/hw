@@ -26,12 +26,12 @@ print("Welcome to TCP chat!")
 # choosing nickname
 input_name: str = input("Please, enter your nickname: ")
 nickname: bytes = input_name.encode('utf-8')
-nickname_len: bytes = len(nickname).to_bytes(2, byteorder='big')
+nickname_len: bytes = len(nickname).to_bytes(5, byteorder='big')
 server.send(nickname_len + nickname)
 
 
 def get_package(sock):
-    header: bytes = sock.recv(2)
+    header: bytes = sock.recv(5)
     length: int = int.from_bytes(header, byteorder='big', signed=False)
     return sock.recv(length)
 
@@ -48,8 +48,8 @@ def write():
                 file = open(file_name, "rb")
                 file_data = file.read(file_size)
                 enc_file_name = file_name.encode('utf-8')
-                file_name_len = len(enc_file_name).to_bytes(2, byteorder='big')
-                file_len = file_size.to_bytes(2, byteorder='big')
+                file_name_len = len(enc_file_name).to_bytes(5, byteorder='big')
+                file_len = file_size.to_bytes(5, byteorder='big')
                 server.send(file_name_len + enc_file_name)
                 server.send(file_len + file_data)
                 print('File {} sent!'.format(file_name))
@@ -58,7 +58,7 @@ def write():
                 print("File does not exist!")
         else:
             enc_message: bytes = message.encode('utf-8')
-            message_len: bytes = len(enc_message).to_bytes(2, byteorder='big')
+            message_len: bytes = len(enc_message).to_bytes(5, byteorder='big')
             server.send(message_len + enc_message)
             server.send(bytes([0]))
             if message == ":q":
