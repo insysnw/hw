@@ -1,12 +1,12 @@
 import socket
 from threading import Thread, active_count
 from datetime import datetime
-from time import sleep
 
 PORT = 5050
 HOST = socket.gethostbyname(socket.gethostname())
 ADDRESS = (HOST, PORT)
 
+HEADER_LENGTH = 20
 SIZE = 1048576
 FORMAT = 'utf-8'
 FILE_MESSAGE = '!send'
@@ -19,9 +19,33 @@ clients_nicknames = {}
 all_nicknames = set()
 
 
+def preparing_a_message(text_message, nick):
+    time_utc = str(datetime.utcnow())
+    time_header = len(time_utc).to_bytes(HEADER_LENGTH, byteorder='big')
+    nick_header = len(nick).to_bytes(HEADER_LENGTH, byteorder='big')
+    message_header = len(text_message).to_bytes(HEADER_LENGTH, byteorder='big')
+    return time_header + time_utc.encode(FORMAT) + nick_header + nick.encode(FORMAT) + \
+           message_header + text_message.encode(FORMAT)
+
+
+def get_message(client):
+    try:
+        header = client.recv(HEADER_LENGTH)
+    except ConnectionResetError or OSError:
+        return False
+
+    if not len(header):
+        return False
+
+    size = int.from_bytes(header, byteorder='big', signed=False)
+    data = client.recv(size)
+    if data is None:
+        return False
+
+    return {'header': header, 'data': data}
+
+
 def send_to_all_clients(msg, sending_client):
-    if sending_client == 'SERVER':
-        print(msg)
     for client, (nickname, _) in clients_nicknames.items():
         if nickname != sending_client:
             client.send(msg)
@@ -31,9 +55,12 @@ def handle(client):
     connected = True
     while connected:
         try:
-            msg = client.recv(SIZE)
-            msg_str_time, message = msg.decode(FORMAT).split('|', maxsplit=1)
-            msg_time = datetime.strptime(msg_str_time, '%Y-%m-%d %H:%M:%S.%f')
+            msg = get_message(client)
+            if not msg:
+                continue
+            message = msg['data'].decode(FORMAT)
+
+            msg_time = datetime.utcnow()
 
             nickname, last_active_time = clients_nicknames[client]
 
@@ -45,23 +72,31 @@ def handle(client):
                 all_nicknames.remove(nickname)
                 connected = False
 
-                left_msg = (msg_str_time + '|' + f"[SERVER]: {nickname} left").encode(FORMAT)
+                left_msg = preparing_a_message(f"{nickname} left", 'SERVER')
                 send_to_all_clients(left_msg, 'SERVER')
                 client.close()
 
             elif message.strip().startswith(FILE_MESSAGE):
-                send_to_all_clients(msg, nickname)
-                sleep(0.001)
+                send_msg = preparing_a_message(message, nickname)
+                send_to_all_clients(send_msg, nickname)
 
-                text = client.recv(SIZE)
-                send_to_all_clients(text, nickname)
-                sleep(0.001)
+                sha = get_message(client)
+                if not sha:
+                    continue
+                send_msg = sha['header'] + sha['data']
+                send_to_all_clients(send_msg, nickname)
 
-                send_msg = (msg_str_time + '|' + f"{nickname} send file {message.split(' ')[1]}").encode(FORMAT)
+                file_data = get_message(client)
+                if not file_data:
+                    continue
+                send_msg = file_data['header'] + file_data['data']
+                send_to_all_clients(send_msg, nickname)
+
+                send_msg = preparing_a_message(f"{nickname} send file {message.split(' ')[1]}", 'SERVER')
                 send_to_all_clients(send_msg, nickname)
 
             else:
-                msg_text = (msg_str_time + '|' + f"[{nickname}]: {message}").encode(FORMAT)
+                msg_text = preparing_a_message(message, nickname)
                 send_to_all_clients(msg_text, nickname)
 
         except ConnectionError:
@@ -71,7 +106,7 @@ def handle(client):
             all_nicknames.remove(nickname)
             client.close()
             connected = False
-            left_msg = (str(datetime.utcnow()) + '|' + f"[SERVER]: {nickname} left").encode(FORMAT)
+            left_msg = preparing_a_message(f"{nickname} left", 'SERVER')
             send_to_all_clients(left_msg, 'SERVER')
 
 
@@ -81,28 +116,37 @@ def start():
     while True:
         client, address = server.accept()
 
-        what_nick = (str(datetime.utcnow()) + '|' + "[SERVER]: What's your nickname?").encode(FORMAT)
-        client.send(what_nick)
+        what_nick = "What's your nickname?"
+        msg = preparing_a_message(what_nick, 'SERVER')
+        client.send(msg)
 
-        _, nickname = client.recv(SIZE).decode(FORMAT).split('|', maxsplit=1)
+        nickname_msg = get_message(client)
+        if not nickname_msg:
+            break
+        else:
+            nickname = nickname_msg['data'].decode(FORMAT)
+        what_nick = "Nickname is busy. Choose another one."
 
         while nickname in all_nicknames:
-            what_nick = (str(datetime.utcnow()) + '|' +
-                         "[SERVER]: Nickname is busy. Choose another one.").encode(FORMAT)
-            client.send(what_nick)
+            msg = preparing_a_message(what_nick, 'SERVER')
+            client.send(msg)
 
-            _, nickname = client.recv(SIZE).decode(FORMAT).split('|', maxsplit=1)
+            nickname_msg = get_message(client)
+            if not nickname_msg:
+                break
+            else:
+                nickname = nickname_msg['data'].decode(FORMAT)
+        else:
+            time_utc = datetime.utcnow()
+            clients_nicknames[client] = (nickname, time_utc)
+            all_nicknames.add(nickname)
 
-        time_utc = datetime.utcnow()
-        clients_nicknames[client] = (nickname, time_utc)
-        all_nicknames.add(nickname)
+            joined_msg = preparing_a_message(f"{nickname} joined", 'SERVER')
+            send_to_all_clients(joined_msg, 'SERVER')
 
-        joined_msg = (str(datetime.utcnow()) + '|' + f"[SERVER]: {nickname} joined").encode(FORMAT)
-        send_to_all_clients(joined_msg, 'SERVER')
-
-        thread = Thread(target=handle, args=(client, ))
-        thread.start()
-        print(f"Active connection {active_count() - 1}")
+            thread = Thread(target=handle, args=(client,))
+            thread.start()
+            print(f"Active connection {active_count() - 1}")
 
 
 start()
