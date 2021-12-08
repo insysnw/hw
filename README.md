@@ -19,15 +19,15 @@
 | Chernyshev.YN |    |    |        |        |        |        |
 | Fedorov.SA    |    |    |        |        |        |        |
 | Keita.AS      |    |    |        |        |        |        |
-| Kobyzhev.AM   | ?  |    | DNS +  | NTP +  | 1.2.6  | 1.2.5  |
+| Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6  | 1.2.5  |
 | Krynskiy.PN   |    | +  | TFTP   | DNS    |        |        |
 | Likholetov.MD |    |    |        |        |        |        |
-| Lunyak.NA     | +  |    | TFTP   | DHCP   |        |        |
-| Ruban.SD      |    |    | DHCP   | TFTP   |        |        |
+| Lunyak.NA     | +  | +  | TFTP   | DHCP   |        |        |
+| Ruban.SD      | +  |    | DHCP   | TFTP   |        |        |
 | Samsonov.SI   |    |    |        |        |        |        |
 | Savelev.DM    | +  |    | DHCP   | NTP    |        |        |
 | Sherepa.NM    | ?  |    |        |        |        |        |
 | Smirnov.LD    |    |    |        |        |        |        |
 | Smirnov.NV    |    |    |        |        |        |        |
-| Sukhachev.NA  | ?  |    | TFTP + | NTP +  |        |        |
-| Tkachenko.DYU | ?  |    | NTP    | DNS    | 1.2.5  | 1.2.6  |
+| Sukhachev.NA  | +  | +  | TFTP + | NTP +  |        |        |
+| Tkachenko.DYU | +  | +  | NTP    | DNS    | 1.2.5  | 1.2.6  |
