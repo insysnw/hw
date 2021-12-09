@@ -22,7 +22,7 @@
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6  | 1.2.5  |
 | Krynskiy.PN   | +  | +  | TFTP + | DNS +  |        |        |
 | Likholetov.MD |    |    |        |        |        |        |
-| Lunyak.NA     | +  | +  | TFTP   | DHCP   |        |        |
+| Lunyak.NA     | +  | +  | TFTP + | DHCP   |        |        |
 | Ruban.SD      | +  |    | DHCP   | TFTP   |        |        |
 | Samsonov.SI   |    |    |        |        |        |        |
 | Savelev.DM    | +  | +  | DHCP   | NTP    |        |        |
