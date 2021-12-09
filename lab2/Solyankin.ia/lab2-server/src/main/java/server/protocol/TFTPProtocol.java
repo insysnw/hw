@@ -140,7 +140,7 @@ public class TFTPProtocol {
      * @param end   - Byte that will mark the end of the message
      */
     public void put(int index, String value, byte end) {
-        message = value.getBytes();
+        value.getBytes(0, value.length(), message, index);
         message[index + value.length()] = end;
     }
 }

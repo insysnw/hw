@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
+import java.nio.file.Paths;
 
 public class TFTPServerWRQ extends Thread {
 
@@ -17,6 +18,7 @@ public class TFTPServerWRQ extends Thread {
     private TFTPProtocol request;
     private int timeoutLimit = 5;
     private File saveFile;
+    private String fileName;
 
     /**
      * Handling a write request
@@ -30,23 +32,32 @@ public class TFTPServerWRQ extends Thread {
             socket.setSoTimeout(1000);
             host = request.getAddress();
             port = request.getPort();
+            fileName = request.fileName();
 
-            saveFile = new File(System.getProperty("user.home") + File.separator +
-                    "Desktop" + File.separator + request.fileName());
+            saveFile = new File(Paths.get(".").toAbsolutePath().normalize().toFile() + File.separator +
+                    "lab2" + File.separator + "Solyankin.ia" + File.separator + "lab2-server" +
+                    File.separator + "files" + File.separator + fileName);
+
             if (!saveFile.exists()) {
                 outputFile = new FileOutputStream(saveFile);
                 TFTPServerAck acknowledge = new TFTPServerAck(0);
                 acknowledge.send(host, port, socket);
                 this.start();
-            } else
+            } else {
+                try {
+                    TFTPServerError error = new TFTPServerError(6, "File already exists");
+                    error.send(host, port, socket);
+                } catch (Exception ignored) {
+                }
                 throw new TFTPServerException("Error while handling write request: file exists");
+            }
         } catch (Exception e) {
+            TFTPServerError error = new TFTPServerError(1, e.getMessage());
             try {
-                TFTPServerError error = new TFTPServerError(1, e.getMessage());
                 error.send(host, port, socket);
             } catch (Exception ignored) {
             }
-            System.out.println("Client start failed: " + e.getMessage());
+            System.out.println("Client error: " + e.getMessage());
         }
     }
 
@@ -84,6 +95,7 @@ public class TFTPServerWRQ extends Thread {
                     }
                 }
                 System.out.println("Transfer completed.(Client " + host + ")");
+                System.out.println("Filename: " + fileName);
             } catch (Exception e) {
                 try {
                     TFTPServerError error = new TFTPServerError(1, e.getMessage());

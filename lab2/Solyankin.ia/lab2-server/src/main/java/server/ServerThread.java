@@ -29,9 +29,11 @@ public class ServerThread extends Thread {
             while (true) {
                 TFTPProtocol request = TFTPProtocol.receive(socket);
                 if (request instanceof TFTPServerRead) {
+                    System.out.println();
                     System.out.println("New read request from " + request.getAddress());
                     new TFTPServerRRQ((TFTPServerRead) request);
                 } else if (request instanceof TFTPServerWrite) {
+                    System.out.println();
                     System.out.println("New write request from " + request.getAddress());
                     new TFTPServerWRQ((TFTPServerWrite) request);
                 }
