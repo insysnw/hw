@@ -25,7 +25,7 @@
 | Lunyak.NA     | +  | +  | TFTP   | DHCP   |        |        |
 | Ruban.SD      | +  |    | DHCP   | TFTP   |        |        |
 | Samsonov.SI   |    |    |        |        |        |        |
-| Savelev.DM    | +  |    | DHCP   | NTP    |        |        |
+| Savelev.DM    | +  | +  | DHCP   | NTP    |        |        |
 | Sherepa.NM    | +  | +  |        |        |        |        |
 | Smirnov.LD    |    |    |        |        |        |        |
 | Smirnov.NV    |    |    |        |        |        |        |
