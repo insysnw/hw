@@ -6,80 +6,74 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class TFTPProtocol {
-    public static int maxTFTPPackLen = 516;
-    public static int maxTFTPData = 512;
+    public static int TFTPPackLen = 516;
 
-    // Tftp opcodes
-    protected static final short tftpRRQ = 1;
-    protected static final short tftpWRQ = 2;
-    protected static final short tftpDATA = 3;
-    protected static final short tftpACK = 4;
-    protected static final short tftpERROR = 5;
+    static final short TFTP_RRQ = 1;
+    static final short TFTP_WRQ = 2;
+    static final short TFTP_DATA = 3;
+    static final short TFTP_ACK = 4;
+    static final short TFTP_ERROR = 5;
 
-    // Packet Offsets
-    protected static final int opOffset = 0;
-    protected static final int fileOffset = 2;
-    protected static final int blkOffset = 2;
-    protected static final int numOffset = 2;
-    protected static final int dataOffset = 4;
-    protected static final int msgOffset = 4;
+    static final int OPCODE_OFFSET = 0;
+    static final int FILE_OFFSET = 2;
+    static final int BLOCK_OFFSET = 2;
+    static final int NUM_OFFSET = 2;
+    static final int DATA_OFFSET = 4;
+    static final int MSG_OFFSET = 4;
 
-    protected byte[] message;
-    protected int length;
-
-    // Address info (required for replies)
-    protected InetAddress host;
-    protected int port;
+    byte[] message;
+    int length;
+    private InetAddress host;
+    private int port;
 
     public TFTPProtocol() {
-        message = new byte[maxTFTPPackLen];
-        length = maxTFTPPackLen;
+        message = new byte[TFTPPackLen];
+        length = TFTPPackLen;
     }
 
     /**
-     * @param socket
-     * @return
-     * @throws IOException
+     * The method in which the received request is processed and, depending on its Opcode, an appropriate class is created to process the request
+     *
+     * @param socket - DatagramSocket, from which we will read requests
+     * @return - currPacket, inherited from the current class that describes the incoming request
      */
     public static TFTPProtocol receive(DatagramSocket socket) throws IOException {
         TFTPProtocol input = new TFTPProtocol();
         TFTPProtocol currPacket = new TFTPProtocol();
 
-        DatagramPacket inputPacket = new DatagramPacket(input.message, input.length);
-        socket.receive(inputPacket);
+        if (!socket.isClosed()) {
+            DatagramPacket inputPacket = new DatagramPacket(input.message, input.length);
+            socket.receive(inputPacket);
 
-        switch (input.get(0)) {
-            case tftpRRQ:
-                currPacket = new TFTPServerRead();
-                break;
-            case tftpWRQ:
-                currPacket = new TFTPServerWrite();
-                break;
-            case tftpDATA:
-                currPacket = new TFTPServerData();
-                break;
-            case tftpACK:
-                currPacket = new TFTPServerAck();
-                break;
-            case tftpERROR:
-                currPacket = new TFTPServerError();
-                break;
+            switch (input.get(0)) {
+                case TFTP_RRQ:
+                    currPacket = new TFTPServerRead();
+                    break;
+                case TFTP_WRQ:
+                    currPacket = new TFTPServerWrite();
+                    break;
+                case TFTP_DATA:
+                    currPacket = new TFTPServerData();
+                    break;
+                case TFTP_ACK:
+                    currPacket = new TFTPServerAck();
+                    break;
+                case TFTP_ERROR:
+                    currPacket = new TFTPServerError();
+                    break;
+            }
+
+            currPacket.message = input.message;
+            currPacket.length = inputPacket.getLength();
+            currPacket.host = inputPacket.getAddress();
+            currPacket.port = inputPacket.getPort();
+
+            return currPacket;
+        } else {
+            return new TFTPServerError(2, "Socket closed");
         }
-
-        currPacket.message = input.message;
-        currPacket.length = inputPacket.getLength();
-        currPacket.host = inputPacket.getAddress();
-        currPacket.port = inputPacket.getPort();
-
-        return currPacket;
     }
 
-    //Method to send packet
-    public void send(InetAddress ip, int port, DatagramSocket s) throws IOException {
-        s.send(new DatagramPacket(message, length, ip, port));
-    }
-
-    // DatagramPacket like methods
     public InetAddress getAddress() {
         return host;
     }
@@ -93,45 +87,60 @@ public class TFTPProtocol {
     }
 
     /**
-     * @param index
-     * @return
+     * Method that sends a datagram packet from the current socket
+     *
+     * @param host   - Host from which the request was received
+     * @param port   - Port from which the request was received
+     * @param socket - Socket from which will send the datagram packet created with the entered parameters
+     * @throws IOException - Exception while send datagram
      */
-    protected int get(int index) {
+    public void send(InetAddress host, int port, DatagramSocket socket) throws IOException {
+        socket.send(new DatagramPacket(message, length, host, port));
+    }
+
+    /**
+     * Getting 2 bytes from the message at position index
+     *
+     * @param index - The position from which 2 bytes will be output from the message
+     * @return - Value of 2 bytes from the message
+     */
+    public int get(int index) {
         return (message[index] & 0xff) << 8 | message[index + 1] & 0xff;
     }
 
     /**
-     * @param at
-     * @param del
-     * @return
+     * Retrieving bytes from the message at position index until byte equals end
+     *
+     * @param index - The position at which to output bytes from the message
+     * @param end   - Byte value upon reaching which byte reading will stop
+     * @return - Value of 2 bytes from the message
      */
-    protected String get(int at, byte del) {
-        StringBuffer result = new StringBuffer();
-        while (message[at] != del) result.append((char) message[at++]);
+    public String get(int index, byte end) {
+        StringBuilder result = new StringBuilder();
+        while (message[index] != end) result.append((char) message[index++]);
         return result.toString();
     }
 
     /**
-     * Methods to put opcode, blkNum, error code into the byte array 'message'
+     * Methods to put opcode, blkNum or error code into the message
      *
-     * @param at
-     * @param value
+     * @param index - The position from which bytes will be inserted into the message
+     * @param value - The value to be added to the message
      */
-    protected void put(int at, short value) {
-        message[at++] = (byte) (value >>> 8);  // first byte
-        message[at] = (byte) (value % 256);    // last byte
+    public void put(int index, short value) {
+        message[index++] = (byte) (value >>> 8);  // first byte
+        message[index] = (byte) (value % 256);    // last byte
     }
 
     /**
-     * Put the filename and mode into the 'message' at 'at' follow by byte "del"
+     * Put the filename and mode into the 'message' at 'index' follow by byte "end"
      *
-     * @param at
-     * @param value
-     * @param del
+     * @param index - The position from which bytes will be inserted into the message
+     * @param value - The string whose value will be added to the message
+     * @param end   - Byte that will mark the end of the message
      */
-    @SuppressWarnings("deprecation")
-    protected void put(int at, String value, byte del) {
-        value.getBytes(0, value.length(), message, at);
-        message[at + value.length()] = del;
+    public void put(int index, String value, byte end) {
+        message = value.getBytes();
+        message[index + value.length()] = end;
     }
 }

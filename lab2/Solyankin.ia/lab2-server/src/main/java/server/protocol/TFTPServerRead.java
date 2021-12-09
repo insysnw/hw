@@ -1,23 +1,25 @@
 package server.protocol;
 
 public class TFTPServerRead extends TFTPProtocol {
-    TFTPServerRead() { }
+    TFTPServerRead() {
+    }
 
+    /**
+     * Generate of the Read packet, consisting of: opcode | filename | 0 | mode | 0
+     *
+     * @param filename - Filename
+     * @param dataMode - May contain "netascii", "octet", or "mail"
+     */
     public TFTPServerRead(String filename, String dataMode) {
         length = 2 + filename.length() + 1 + dataMode.length() + 1;
         message = new byte[length];
 
-        put(opOffset, tftpRRQ);
-        put(fileOffset, filename, (byte) 0);
-        put(fileOffset + filename.length() + 1, dataMode, (byte) 0);
+        put(OPCODE_OFFSET, TFTP_RRQ);
+        put(FILE_OFFSET, filename, (byte) 0);
+        put(FILE_OFFSET + filename.length() + 1, dataMode, (byte) 0);
     }
 
     public String fileName() {
-        return this.get(fileOffset, (byte) 0);
-    }
-
-    public String requestType() {
-        String name = fileName();
-        return this.get(fileOffset + name.length() + 1, (byte) 0);
+        return this.get(FILE_OFFSET, (byte) 0);
     }
 }

@@ -1,24 +1,25 @@
 package server.protocol;
 
 public class TFTPServerWrite extends TFTPProtocol {
-    protected TFTPServerWrite() {
+    TFTPServerWrite() {
     }
 
+    /**
+     * Generate of the Write packet, consisting of: opcode | filename | 0 | mode | 0
+     *
+     * @param filename - Filename
+     * @param dataMode - May contain "netascii", "octet", or "mail"
+     */
     public TFTPServerWrite(String filename, String dataMode) {
         length = 2 + filename.length() + 1 + dataMode.length() + 1;
         message = new byte[length];
 
-        put(opOffset, tftpWRQ);
-        put(fileOffset, filename, (byte) 0);
-        put(fileOffset + filename.length() + 1, dataMode, (byte) 0);
+        put(OPCODE_OFFSET, TFTP_WRQ);
+        put(FILE_OFFSET, filename, (byte) 0);
+        put(FILE_OFFSET + filename.length() + 1, dataMode, (byte) 0);
     }
 
     public String fileName() {
-        return this.get(fileOffset, (byte) 0);
-    }
-
-    public String requestType() {
-        String name = fileName();
-        return this.get(fileOffset + name.length() + 1, (byte) 0);
+        return this.get(FILE_OFFSET, (byte) 0);
     }
 }

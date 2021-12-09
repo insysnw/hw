@@ -4,16 +4,19 @@ public class TFTPServerAck extends TFTPProtocol {
     protected TFTPServerAck() {
     }
 
-    //Generate ack packet
+    /**
+     * Generate of the Acknowledgment  packet, consisting of: opcode | Block #
+     *
+     * @param blockNumber - The block number of the DATA packet being acknowledged
+     */
     public TFTPServerAck(int blockNumber) {
         length = 4;
         this.message = new byte[length];
-        put(opOffset, tftpACK);
-        put(blkOffset, (short) blockNumber);
+        put(OPCODE_OFFSET, TFTP_ACK);
+        put(BLOCK_OFFSET, (short) blockNumber);
     }
 
-    // Accessors
     public int blockNumber() {
-        return this.get(blkOffset);
+        return this.get(BLOCK_OFFSET);
     }
 }

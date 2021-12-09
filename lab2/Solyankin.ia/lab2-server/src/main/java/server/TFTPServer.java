@@ -1,17 +1,9 @@
 package server;
 
-import server.protocol.TFTPProtocol;
-import server.protocol.TFTPServerRead;
-import server.protocol.TFTPServerWrite;
-import server.requests.TFTPServerRRQ;
-import server.requests.TFTPServerWRQ;
-
-import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.util.Scanner;
 
 public class TFTPServer {
+    private ServerThread serverThread;
     private String host;
     private int port;
 
@@ -21,23 +13,27 @@ public class TFTPServer {
     }
 
     public void start() {
-        try {
-            DatagramSocket socket = new DatagramSocket(port, InetAddress.getByName(host));
+        serverThread = new ServerThread(host, port);
+        serverThread.start();
+        while (!serverThread.isInterrupted()) {
+            readCommand();
+        }
+    }
 
-            while (true) {
-                TFTPProtocol request = TFTPProtocol.receive(socket);
-                if (request instanceof TFTPServerRead) {
-                    System.out.println("Read Request from " + request.getAddress());
-                    TFTPServerRRQ r = new TFTPServerRRQ((TFTPServerRead) request);
-                } else if (request instanceof TFTPServerWrite) {
-                    System.out.println("Write Request from " + request.getAddress());
-                    TFTPServerWRQ w = new TFTPServerWRQ((TFTPServerWrite) request);
+    private void readCommand() {
+        Scanner scanner = new Scanner(System.in);
+        if (scanner.hasNext()) {
+            String text = scanner.nextLine();
+            if (text.trim().length() > 0) {
+                switch (text.trim().toLowerCase()) {
+                    case "/stop":
+                        serverThread.closeServerThread();
+                        break;
+                    default:
+                        System.out.println("Incorrect command");
+                        break;
                 }
             }
-        } catch (SocketException e) {
-            System.out.println("Server terminated(SocketException) " + e.getMessage());
-        } catch (IOException e) {
-            System.out.println("Server terminated(IOException)" + e.getMessage());
         }
     }
 }
