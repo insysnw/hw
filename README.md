@@ -20,13 +20,13 @@
 | Fedorov.SA    |    |    |        |        |        |        |
 | Keita.AS      |    |    |        |        |        |        |
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6  | 1.2.5  |
-| Krynskiy.PN   |    | +  | TFTP   | DNS    |        |        |
+| Krynskiy.PN   | +  | +  | TFTP + | DNS +  |        |        |
 | Likholetov.MD |    |    |        |        |        |        |
 | Lunyak.NA     | +  | +  | TFTP   | DHCP   |        |        |
 | Ruban.SD      | +  |    | DHCP   | TFTP   |        |        |
 | Samsonov.SI   |    |    |        |        |        |        |
 | Savelev.DM    | +  |    | DHCP   | NTP    |        |        |
-| Sherepa.NM    | ?  |    |        |        |        |        |
+| Sherepa.NM    | +  | +  |        |        |        |        |
 | Smirnov.LD    |    |    |        |        |        |        |
 | Smirnov.NV    |    |    |        |        |        |        |
 | Sukhachev.NA  | +  | +  | TFTP + | NTP +  |        |        |
