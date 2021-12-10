@@ -64,7 +64,7 @@ public class TFTPServerWRQ extends Thread {
             try {
                 int blockNumber = 1;
                 int bytesOut = 512;
-                for (; bytesOut == 512; blockNumber++) { // check
+                for (; bytesOut == 512; blockNumber++) {
                     while (timeoutLimit != 0) {
                         try {
                             TFTPProtocol receive = TFTPProtocol.receive(socket);
@@ -83,7 +83,7 @@ public class TFTPServerWRQ extends Thread {
                             }
                         } catch (SocketTimeoutException t2) {
                             System.out.println("Time out, resend ack");
-                            TFTPServerAck acknowledge = new TFTPServerAck(blockNumber - 1); // check
+                            TFTPServerAck acknowledge = new TFTPServerAck(blockNumber - 1);
                             acknowledge.send(host, port, socket);
                             timeoutLimit--;
                         }

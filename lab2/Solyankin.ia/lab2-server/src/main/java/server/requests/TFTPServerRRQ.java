@@ -66,7 +66,6 @@ public class TFTPServerRRQ extends Thread {
                     bytesRead = outputRequest.getLength();
                     outputRequest.send(host, port, socket);
 
-                    //wait for the correct ack. if incorrect, retry up to 5 times
                     while (timeoutLimit != 0) {
                         try {
                             TFTPProtocol receive = TFTPProtocol.receive(socket);
