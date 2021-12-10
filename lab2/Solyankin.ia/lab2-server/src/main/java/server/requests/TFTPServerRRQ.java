@@ -32,9 +32,7 @@ public class TFTPServerRRQ extends Thread {
             port = request.getPort();
             fileName = request.fileName();
 
-            File srcFile = new File(Paths.get(".").toAbsolutePath().normalize().toFile() + File.separator +
-                    "lab2" + File.separator + "Solyankin.ia" + File.separator + "lab2-server" +
-                    File.separator + "files" + File.separator + fileName);
+            File srcFile = new File(Paths.get(".").toAbsolutePath().normalize().toFile() + File.separator + fileName);
 
             if (srcFile.exists() && srcFile.isFile() && srcFile.canRead()) {
                 source = new FileInputStream(srcFile);
@@ -54,6 +52,7 @@ public class TFTPServerRRQ extends Thread {
             } catch (Exception ignored) {
             }
             System.out.println("Client error:  " + e.getMessage());
+            System.out.println();
         }
     }
 
@@ -90,7 +89,8 @@ public class TFTPServerRRQ extends Thread {
                     }
                 }
                 System.out.println("Transfer completed.(Client " + host + ")");
-                System.out.println("Filename: "+ fileName);
+                System.out.println("Filename: " + fileName);
+                System.out.println();
             } catch (Exception e) {
                 try {
                     TFTPServerError ePak = new TFTPServerError(1, e.getMessage());

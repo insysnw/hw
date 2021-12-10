@@ -10,7 +10,6 @@ import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
 
 public class TFTPServerWRQ extends Thread {
-
     private DatagramSocket socket;
     private InetAddress host;
     private int port;
@@ -34,9 +33,7 @@ public class TFTPServerWRQ extends Thread {
             port = request.getPort();
             fileName = request.fileName();
 
-            saveFile = new File(Paths.get(".").toAbsolutePath().normalize().toFile() + File.separator +
-                    "lab2" + File.separator + "Solyankin.ia" + File.separator + "lab2-server" +
-                    File.separator + "files" + File.separator + fileName);
+            saveFile = new File(Paths.get(".").toAbsolutePath().normalize().toFile() + File.separator + fileName);
 
             if (!saveFile.exists()) {
                 outputFile = new FileOutputStream(saveFile);
@@ -58,6 +55,7 @@ public class TFTPServerWRQ extends Thread {
             } catch (Exception ignored) {
             }
             System.out.println("Client error: " + e.getMessage());
+            System.out.println();
         }
     }
 
@@ -96,6 +94,7 @@ public class TFTPServerWRQ extends Thread {
                 }
                 System.out.println("Transfer completed.(Client " + host + ")");
                 System.out.println("Filename: " + fileName);
+                System.out.println();
             } catch (Exception e) {
                 try {
                     TFTPServerError error = new TFTPServerError(1, e.getMessage());

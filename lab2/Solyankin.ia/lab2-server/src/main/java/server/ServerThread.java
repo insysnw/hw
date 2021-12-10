@@ -25,15 +25,14 @@ public class ServerThread extends Thread {
         try {
             socket = new DatagramSocket(port, InetAddress.getByName(host));
             System.out.println("Server now listening on " + host + ":" + port);
+            System.out.println();
 
             while (true) {
                 TFTPProtocol request = TFTPProtocol.receive(socket);
                 if (request instanceof TFTPServerRead) {
-                    System.out.println();
                     System.out.println("New read request from " + request.getAddress());
                     new TFTPServerRRQ((TFTPServerRead) request);
                 } else if (request instanceof TFTPServerWrite) {
-                    System.out.println();
                     System.out.println("New write request from " + request.getAddress());
                     new TFTPServerWRQ((TFTPServerWrite) request);
                 }
