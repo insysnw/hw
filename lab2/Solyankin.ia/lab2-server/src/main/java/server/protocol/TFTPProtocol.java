@@ -39,7 +39,7 @@ public class TFTPProtocol {
      */
     public static TFTPProtocol receive(DatagramSocket socket) throws IOException {
         TFTPProtocol input = new TFTPProtocol();
-        TFTPProtocol currPacket = new TFTPProtocol();
+        TFTPProtocol protocol = new TFTPProtocol();
 
         if (!socket.isClosed()) {
             DatagramPacket inputPacket = new DatagramPacket(input.message, input.length);
@@ -47,28 +47,28 @@ public class TFTPProtocol {
 
             switch (input.get(0)) {
                 case TFTP_RRQ:
-                    currPacket = new TFTPServerRead();
+                    protocol = new TFTPServerRead();
                     break;
                 case TFTP_WRQ:
-                    currPacket = new TFTPServerWrite();
+                    protocol = new TFTPServerWrite();
                     break;
                 case TFTP_DATA:
-                    currPacket = new TFTPServerData();
+                    protocol = new TFTPServerData();
                     break;
                 case TFTP_ACK:
-                    currPacket = new TFTPServerAck();
+                    protocol = new TFTPServerAck();
                     break;
                 case TFTP_ERROR:
-                    currPacket = new TFTPServerError();
+                    protocol = new TFTPServerError();
                     break;
             }
 
-            currPacket.message = input.message;
-            currPacket.length = inputPacket.getLength();
-            currPacket.host = inputPacket.getAddress();
-            currPacket.port = inputPacket.getPort();
+            protocol.message = input.message;
+            protocol.length = inputPacket.getLength();
+            protocol.host = inputPacket.getAddress();
+            protocol.port = inputPacket.getPort();
 
-            return currPacket;
+            return protocol;
         } else {
             return new TFTPServerError(2, "Socket closed");
         }
