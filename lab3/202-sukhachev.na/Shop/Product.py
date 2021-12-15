@@ -8,10 +8,10 @@ class Product:
         self.productName = productName
         self.price = price
 
-    def toString(self):
+    def toObj(self):
         obj = {
             'id': self.id,
             'productName': self.productName,
             'price': self.price
         }
-        return json.dumps(obj)
+        return obj

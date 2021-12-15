@@ -29,7 +29,7 @@ def main():
         elif command.strip(' ') == 'get history':
             getHistory()
         else:
-            print('Для вызова помощи введите "get help"')
+            print('Для вызова помощи введите "get instruction"')
 
 
 def help():
@@ -41,7 +41,7 @@ def help():
     print('Чтобы узнать список пользователей платежной системы введите "get client list"')
     print('Чтобы пополнить баланс пользователю введите "set money"(! Требуется пароль администратора !)')
     print('Чтобы получить историю операций введите "get history"(! Требуется пароль администратора !)')
-    print('Для повторного вызова помощи введите "get help"')
+    print('Для повторного вызова помощи введите "get instruction"')
 
 def createAccount():
     global myId
@@ -67,7 +67,7 @@ def createAccount():
 def deleteAccount():
     global myId
     if myId:
-        password = input('Введи пароль от аккаунта:')
+        password = input('Введите пароль от аккаунта:')
         data = {
             'password': password,
             'id': myId

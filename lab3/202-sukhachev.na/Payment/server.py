@@ -75,7 +75,11 @@ def sendMoney():
     password = info['password']
     sender = info['sender']
     receiver = info['receiver']
-    sum = int(info['sum'])
+    try:
+        sum = int(info['sum'])
+    except:
+        response.status = 400
+        return 'Сумма должна быть числом'
     if sum <= 0:
         response.status = 400
         return 'Невозможно перевести нулевую или отрицательную сумму!'
@@ -124,7 +128,11 @@ def getClientList():
 def setMoney():
     accountInfo = json.loads(request.body.getvalue().decode('utf-8'))
     id = accountInfo['id']
-    sum = int(accountInfo['sum'])
+    try:
+        sum = int(accountInfo['sum'])
+    except:
+        response.status = 400
+        return 'Сумма должна быть числом'
     password = accountInfo['password']
     if id in accounts.keys():
         if password == adminPassword:

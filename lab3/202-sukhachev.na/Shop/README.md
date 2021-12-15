@@ -49,8 +49,8 @@
     {   
         'password': string,
         'productName': string,
-        'price': int,
-        'count': int
+        'price': string | int,
+        'count': string | int
         
     }
     

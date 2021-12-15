@@ -30,10 +30,10 @@ def main():
             watchBusket()
         elif command.strip(' ') == 'buy':
             buy()
-        elif command.strip(' ') == 'get help':
+        elif command.strip(' ') == 'get instruction':
             help()
         else:
-            print('Для вызова помощи введети "get help"')
+            print('Для вызова помощи введети "help"')
 
 
 def getHelp():
@@ -45,7 +45,7 @@ def getHelp():
     print('Чтобы добавить продукт в список товаров введите "add product"(! требуется пароль администратора !)')
     print(
         'Чтобы добавить удалить продукт из списка товаров введите "delete product"(! требуется пароль администратора !)')
-    print('Чтобы вызвать помощь ещё раз, введите "get help"')
+    print('Чтобы вызвать помощь ещё раз, введите "get instruction"')
 
 
 def getProductList(needPrint=False):
@@ -56,7 +56,7 @@ def getProductList(needPrint=False):
         productList = {}
         for key in list.keys():
             el = list[key]
-            product = json.loads(el['product'])
+            product = el['product']
             productList[product['id']] = Product(id=product['id'], productName=product['productName'],
                                                  price=product['price'])
             if needPrint:
@@ -105,7 +105,7 @@ def addToBusket():
         if id in productList.keys():
             busket[id] = {
                 'count': int(count),
-                'product': productList[id].toString()
+                'product': productList[id].toObj()
             }
             print('Продукт добавлен в корзину')
         else:

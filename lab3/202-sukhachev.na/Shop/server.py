@@ -8,19 +8,19 @@ adminPassword = '12345'
 
 productList = {
     '1': {
-        "product": Product(id=1, productName='bánh mì', price=1000).toString(),
+        "product": Product(id=1, productName='bánh mì', price=1000).toObj(),
         "count": 100
     },
     '2': {
-        "product": Product(id=2, productName='nước ép', price=8000).toString(),
+        "product": Product(id=2, productName='nước ép', price=8000).toObj(),
         "count": 50
     },
     '3': {
-        "product": Product(id=3, productName='mì tôm', price=6000).toString(),
+        "product": Product(id=3, productName='mì tôm', price=6000).toObj(),
         "count": 10
     },
     '4': {
-        "product": Product(id=4, productName='cà chua', price=100).toString(),
+        "product": Product(id=4, productName='cà chua', price=100).toObj(),
         "count": 40
     },
 }
@@ -45,7 +45,7 @@ def addProduct():
             else:
                 product = Product(productName=productName, price=price)
                 newProduct = {
-                    'product': product.toString(),
+                    'product': product.toObj(),
                     'count': count
                 }
                 productList[product.id] = newProduct
@@ -88,7 +88,7 @@ def buy():
     for key in result:
         item = result[key]
         count = item['count']
-        product = json.loads(item['product'])
+        product = item['product']
         if key in productList.keys():
             if int(item['count']) <= productList[key]['count']:
                 sum += count * int(product['price'])
