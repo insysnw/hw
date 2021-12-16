@@ -7,7 +7,6 @@ HOST = 'http://localhost:10000'
 
 accounts = {
     '1': {
-        'id': '1',
         'name': 'Test',
         'value': 0,
         'password': 'Test'
@@ -15,10 +14,7 @@ accounts = {
 }
 
 accountsPublic = {
-    '1': {
-        'id': '1',
-        'name': 'Test',
-    }
+    '1': 'Test',
 }
 
 history = []
@@ -56,15 +52,11 @@ def createAccount():
         response.status = 400
         return 'Для создания аккаунта необходимо ввести имя!'
     accounts[id] = {
-        'name': name.strip(' '),
-        'id': id,
+        'name': name,
         'password': password,
         'value': initialValue
     }
-    accountsPublic[id] = {
-        'name': name.strip(' '),
-        'id': id,
-    }
+    accountsPublic[id] = name
     history.append('Аккаунт ' + id + ' создан')
     return id
 

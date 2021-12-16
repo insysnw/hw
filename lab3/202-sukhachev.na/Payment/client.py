@@ -100,7 +100,7 @@ def getClientList():
         clientList = json.loads(response.text)
         for el in clientList.keys():
             client = clientList[el]
-            print(client['name'] + ' - ' + client['id'])
+            print(client + ' - ' +el)
     else:
         print('Невозможно получить список клиентов')
 
