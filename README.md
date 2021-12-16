@@ -22,8 +22,8 @@
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  |
 | Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |
 | Likholetov.MD |    |    |        |        |          |          |
-| Lunyak.NA     | +  | +  | TFTP + | DHCP   |          |          |
-| Ruban.SD      | +  |    | DHCP   | TFTP   |          |          |
+| Lunyak.NA     | +  | +  | TFTP + | DHCP + | 1.2.10 + | 1.2.20   |
+| Ruban.SD      | +  |    | DHCP   | TFTP   | 1.2.20   | 1.2.10   |
 | Samsonov.SI   |    |    |        |        |          |          |
 | Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
 | Sherepa.NM    | +  | +  |        |        |          |          |
