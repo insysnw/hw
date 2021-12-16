@@ -14,20 +14,20 @@
 
 ## 202
 
-| Student       | 1a | 1b | 2 srvr | 2 clnt | 3 srvr  | 3 clnt  |
-| --            | -- | -- | --     | --     | --      | --      |
-| Chernyshev.YN |    |    |        |        |         |         |
-| Fedorov.SA    |    |    |        |        |         |         |
-| Keita.AS      |    |    |        |        |         |         |
-| Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 + | 1.2.5 + |
-| Krynskiy.PN   | +  | +  | TFTP + | DNS +  |         |         |
-| Likholetov.MD |    |    |        |        |         |         |
-| Lunyak.NA     | +  | +  | TFTP + | DHCP   |         |         |
-| Ruban.SD      | +  |    | DHCP   | TFTP   |         |         |
-| Samsonov.SI   |    |    |        |        |         |         |
-| Savelev.DM    | +  | +  | DHCP   | NTP    |         |         |
-| Sherepa.NM    | +  | +  |        |        |         |         |
-| Smirnov.LD    |    |    |        |        |         |         |
-| Smirnov.NV    |    |    |        |        |         |         |
-| Sukhachev.NA  | +  | +  | TFTP + | NTP +  |         |         |
-| Tkachenko.DYU | +  | +  | NTP +  | DNS +  | 1.2.5 + | 1.2.6 + |
+| Student       | 1a | 1b | 2 srvr | 2 clnt | 3 srvr   | 3 clnt   |
+| --            | -- | -- | --     | --     | --       | --       |
+| Chernyshev.YN |    |    |        |        |          |          |
+| Fedorov.SA    |    |    |        |        |          |          |
+| Keita.AS      |    |    |        |        |          |          |
+| Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  |
+| Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |
+| Likholetov.MD |    |    |        |        |          |          |
+| Lunyak.NA     | +  | +  | TFTP + | DHCP   |          |          |
+| Ruban.SD      | +  |    | DHCP   | TFTP   |          |          |
+| Samsonov.SI   |    |    |        |        |          |          |
+| Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
+| Sherepa.NM    | +  | +  |        |        |          |          |
+| Smirnov.LD    |    |    |        |        |          |          |
+| Smirnov.NV    |    |    |        |        |          |          |
+| Sukhachev.NA  | +  | +  | TFTP + | NTP +  | 1.2.14 + | 1.2.11 + |
+| Tkachenko.DYU | +  | +  | NTP +  | DNS +  | 1.2.5 +  | 1.2.6 +  |
