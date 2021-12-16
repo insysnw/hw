@@ -30,7 +30,7 @@ productList = {
 def addProduct():
     posted = json.loads(request.body.getvalue().decode('utf-8'))
     try:
-        password = posted['password']
+        password = request.auth[1]
         productName = posted['productName']
         try:
             price = int(posted['price'])
@@ -60,7 +60,7 @@ def addProduct():
 @route('/deleteProduct', method='DELETE')
 def deleteProduct():
     deleted = json.loads(request.body.getvalue().decode('utf-8'))
-    password = deleted['password']
+    password = request.auth[1]
     id = deleted['id']
     if password == adminPassword:
         if id in productList.keys():

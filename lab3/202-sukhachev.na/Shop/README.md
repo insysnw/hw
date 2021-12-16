@@ -45,9 +45,12 @@
     
     count - количество продукта в наличии
     
+    Авторизация через Basic authentication
+    
+    auth = ('ADMIN', password)
+    
     ````
     {   
-        'password': string,
         'productName': string,
         'price': string | int,
         'count': string | int
@@ -72,9 +75,12 @@
     
     id - уникальный идентификатор продукта
     
+    Авторизация через Basic authentication
+    
+    auth = ('ADMIN', password)
+    
     ````
    {
-    'password': string,
     'id': string
    }
     ````

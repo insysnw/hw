@@ -68,11 +68,7 @@ def deleteAccount():
     global myId
     if myId:
         password = input('Введите пароль от аккаунта:')
-        data = {
-            'password': password,
-            'id': myId
-        }
-        response = requests.delete(HOST + '/deleteAccount', data=json.dumps(data))
+        response = requests.delete(HOST + '/deleteAccount', auth=(myId, password))
         if response.status_code == 200:
             myId = None
             print('Аккаунт успешно удалён')
@@ -83,16 +79,15 @@ def deleteAccount():
             print(response.text)
 
 def getValue():
-    password = input('Введите пароль от аккаунта:')
-    data = {
-        'password': password,
-        'id': myId
-    }
-    response = requests.get(HOST + '/getValue', data=json.dumps(data))
-    if response.status_code == 200:
-        print('Баланс вашего аккаунта: ' + response.text)
+    if myId:
+        password = input('Введите пароль от аккаунта:')
+        response = requests.get(HOST + '/getValue', auth=(myId, password))
+        if response.status_code == 200:
+            print('Баланс вашего аккаунта: ' + response.text)
+        else:
+            print(response.text)
     else:
-        print(response.text)
+        print('Создайте аккаунт!')
 
 def getClientList():
     response = requests.get(HOST + '/getClientList')
@@ -117,12 +112,10 @@ def sendMoney():
         receiver = input('Введите идентификатор получателя:')
         sum = input('Введите сумму перевода:')
         data = {
-            'password': password,
-            'sender': myId,
             'receiver': receiver,
             'sum': sum
         }
-        response = requests.post(HOST + '/sendMoney', data=json.dumps(data))
+        response = requests.post(HOST + '/sendMoney', data=json.dumps(data), auth=(myId,password))
         if response.status_code == 200:
             print('Операция успешно проведена')
         else:
@@ -135,11 +128,10 @@ def setMoney():
     id = input('Введите уникальный идентификатор аккаунта:')
     sum = input('Введите сумму, на которую необходимо изменить баланс аккаунта:')
     data = {
-        'password': password,
         'id': id,
         'sum': sum
     }
-    response = requests.post(HOST + '/addMoney', data=json.dumps(data))
+    response = requests.post(HOST + '/addMoney', data=json.dumps(data), auth=('ADMIN', password))
     if response.status_code == 200:
         print('Операция успешно проведена')
     else:
@@ -147,7 +139,7 @@ def setMoney():
 
 def getHistory():
     password = input('Введите пароль администратора:')
-    response = requests.get(HOST + '/getHistory', data=json.dumps(password))
+    response = requests.get(HOST + '/getHistory', auth=('ADMIN', password))
     if response.status_code == 200:
         history = json.loads(response.text)
         for el in history:

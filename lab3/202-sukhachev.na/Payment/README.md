@@ -16,13 +16,10 @@
     
     password - пароль от аккаунта
     
-    ```
-        {
-            'password': string,
-            'id': string
-        }
-     ```
-  
+    Авторизация через Basic authentication
+    
+    auth = (id, password)
+    
     Возвращаемые ошибки:
     
     401 - Неверный пароль
@@ -36,7 +33,7 @@
     name - имя владельца аккаунта
     
     password - пароль от аккаунта
-    
+     
     ```
         {
             'password': string,
@@ -68,11 +65,13 @@
     
     sum - сумма перевода
     
+    Авторизация через Basic authentication
+    
+    auth = (id, password)
+    
     ```
         {
-            'sender': string,
             'receiver': string,
-            'sum': string,
             'sum': int | string,
         }
      ```
@@ -93,15 +92,10 @@
      
     password - пароль от аккаунта
  
+    Авторизация через Basic authentication
     
-    ```
-       {
-           'id': string,
-           'password': string,
-       }
-    ```
-    
-     
+    auth = (id, password)
+  
    Возвращаемые ошибки:
     
    401 - Неверный пароль
@@ -134,10 +128,12 @@
     
     sum - сумма, на которую надо изменить баланс аккаунта
  
+    Авторизация через Basic authentication
+    
+    auth = ('ADMIN', password)
     ```
        {
            'id': string,
-           'password': string,
            'sum' : int | string
        }
     ```

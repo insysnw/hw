@@ -25,9 +25,8 @@ adminPassword = '12345'
 
 @route('/getValue', method='GET')
 def getValue():
-    accountInfo = json.loads(request.body.getvalue().decode('utf-8'))
-    id = accountInfo['id']
-    password = accountInfo['password']
+    id = request.auth[0]
+    password = request.auth[1]
     if id in accounts.keys():
         if password == accounts[id]['password']:
             return str(accounts[id]['value'])
@@ -64,8 +63,8 @@ def createAccount():
 @route('/sendMoney', method='POST')
 def sendMoney():
     info = json.loads(request.body.getvalue().decode('utf-8'))
-    password = info['password']
-    sender = info['sender']
+    sender = request.auth[0]
+    password = request.auth[1]
     receiver = info['receiver']
     try:
         sum = int(info['sum'])
@@ -75,6 +74,9 @@ def sendMoney():
     if sum <= 0:
         response.status = 400
         return 'Невозможно перевести нулевую или отрицательную сумму!'
+    if sender == receiver:
+        response.status = 400
+        return 'Нельзя переводить деньги на свой счёт'
     elif sender in accounts.keys() and receiver in accounts.keys():
         if password == accounts[sender]['password']:
             if accounts[sender]['value'] >= sum:
@@ -95,9 +97,8 @@ def sendMoney():
 
 @route('/deleteAccount', method='DELETE')
 def deleteAccount():
-    accountInfo = json.loads(request.body.getvalue().decode('utf-8'))
-    id = accountInfo['id']
-    password = accountInfo['password']
+    id = request.auth[0]
+    password = request.auth[1]
     if id in accounts.keys():
         if password == accounts[id]['password']:
             del accounts[id]
@@ -125,9 +126,10 @@ def setMoney():
     except:
         response.status = 400
         return 'Сумма должна быть числом'
-    password = accountInfo['password']
+    login = request.auth[0]
+    password = request.auth[1]
     if id in accounts.keys():
-        if password == adminPassword:
+        if password == adminPassword or login != 'ADMIN':
             accounts[id]['value'] = accounts[id]['value'] + sum
             history.append('Аккаунту ' + id + ' изменён баланс администратором на ' + str(sum))
         else:
@@ -140,8 +142,9 @@ def setMoney():
 
 @route('/getHistory', method='GET')
 def getHistory():
-    password = json.loads(request.body.getvalue().decode('utf-8'))
-    if password == adminPassword:
+    login = request.auth[0]
+    password = request.auth[1]
+    if password == adminPassword or login != 'ADMIN':
         return json.dumps(history)
     else:
         response.status = 401

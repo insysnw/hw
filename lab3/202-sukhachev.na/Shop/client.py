@@ -69,14 +69,13 @@ def getProductList(needPrint=False):
 def addProduct():
     data = {}
     password = input('Введите пароль администратора:')
-    data['password'] = password
     productName = input('Введите название продукта:')
     data['productName'] = productName
     price = input('Введите цену продукта:')
     data['price'] = price
     count = input('Введите количество товара:')
     data['count'] = count
-    response = requests.post(HOST + '/addProduct', data=json.dumps(data))
+    response = requests.post(HOST + '/addProduct', data=json.dumps(data), auth=('ADMIN', password))
     if response.status_code == 200:
         print("Продукт успешно добавлен")
     else:
@@ -86,10 +85,9 @@ def addProduct():
 def deleteProduct():
     data = {}
     password = input('Введите пароль администратора:')
-    data['password'] = password
     id = input('Введите идентификатор продукта:')
     data['id'] = id
-    response = requests.delete(HOST + '/deleteProduct', data=json.dumps(data))
+    response = requests.delete(HOST + '/deleteProduct', data=json.dumps(data), auth=('ADMIN', password))
     if response.status_code == 200:
         print("Продукт успешно удалён")
     else:
