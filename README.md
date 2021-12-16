@@ -18,7 +18,7 @@
 | --            | -- | -- | --     | --     | --       | --       |
 | Chernyshev.YN |    |    |        |        |          |          |
 | Fedorov.SA    |    |    |        |        |          |          |
-| Keita.AS      |    |    |        |        |          |          |
+| Keita.AS      | +  | +  | DNS    | SNMP   |          |          |
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  |
 | Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |
 | Likholetov.MD |    |    |        |        |          |          |
