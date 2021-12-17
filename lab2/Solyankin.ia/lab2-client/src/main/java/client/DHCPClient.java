@@ -36,49 +36,42 @@ public class DHCPClient extends Thread {
 
         DHCPDiscover();
 
-        boolean ackReceived = false;
-        while (!ackReceived) {
-            try {
-                clientSocket.setSoTimeout(600000);
-                clientSocket.receive(receivePacketOffer);
-                System.out.println("Receive offer response from server");
-            } catch (IOException e) {
-                System.out.println("Error while receive offer response: " + e.getMessage());
-                System.exit(-1);
-            }
-            //DHCPMessage offer = new DHCPMessage(receivePacketOffer.getData());
-            //System.out.println(offer);
-
-            DHCPRequest(receivePacketOffer);
-
-            DatagramPacket receivePacketAck = new DatagramPacket(buffer, length);
-            try {
-                clientSocket.receive(receivePacketAck);
-                System.out.println("Receive ack response from server");
-                System.out.println();
-            } catch (IOException e) {
-                System.out.println("Error while receive ack response: " + e.getMessage());
-                e.printStackTrace();
-                System.exit(-1);
-            }
-
-            DHCPMessage acknowledge = new DHCPMessage(receivePacketAck.getData());
-            //System.out.println(acknowledge);
-
-            switch (acknowledge.getType()) {
-                case DHCPMessage.DHCPACK:
-                    System.out.print("Allocated ip: ");
-                    for (byte b : acknowledge.yiAddr)
-                        System.out.print((b & 0xFF) + ".");
-                    System.out.println();
-                    ackReceived = true;
-                    break;
-                case DHCPMessage.DHCPNAK:
-                    System.out.println("No IP allocated to this client");
-                    break;
-            }
-            clientSocket.close();
+        try {
+            clientSocket.setSoTimeout(600000);
+            clientSocket.receive(receivePacketOffer);
+            System.out.println("Receive offer response from server");
+        } catch (IOException e) {
+            System.out.println("Error while receive offer response: " + e.getMessage());
+            System.exit(-1);
         }
+
+        DHCPRequest(receivePacketOffer);
+
+        DatagramPacket receivePacketAck = new DatagramPacket(buffer, length);
+        try {
+            clientSocket.receive(receivePacketAck);
+            System.out.println("Receive ack response from server");
+            System.out.println();
+        } catch (IOException e) {
+            System.out.println("Error while receive ack response: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        DHCPMessage acknowledge = new DHCPMessage(receivePacketAck.getData());
+
+        switch (acknowledge.getType()) {
+            case DHCPMessage.DHCPACK:
+                System.out.print("Allocated ip: ");
+                for (byte b : acknowledge.yiAddr)
+                    System.out.print((b & 0xFF) + ".");
+                System.out.println();
+                break;
+            case DHCPMessage.DHCPNAK:
+                System.out.println("No IP allocated to this client");
+                break;
+        }
+        clientSocket.close();
     }
 
     private void DHCPDiscover() {
@@ -129,7 +122,6 @@ public class DHCPClient extends Thread {
 
         message.addOption((byte) 53, (byte) 1, new byte[]{DHCPMessage.DHCPREQUEST});
         message.addOption((byte) 50, (byte) 4, message.yiAddr);
-//        message.yiAddr = new byte[]{0, 0, 0, 0};
         message.addOption((byte) 54, (byte) 4, message.siAddr);
         message.addOption((byte) 51, (byte) 4, Tools.toByteArray(300));
         message.addOption((byte) 255, (byte) 0, new byte[]{0});

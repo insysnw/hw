@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 public class DHCPMessage {
     public static final byte[] COOKIE = Tools.toBytes(new int[]{99, 130, 83, 99});
-    public static final int MINLENGTH = 240;
+    private static final int MINLENGTH = 240;
 
     // Types of DHTPMessage
     public final static byte DHCPDISCOVER = 1;
@@ -33,7 +33,7 @@ public class DHCPMessage {
     public byte[] sName = new byte[64];
     public byte[] file = new byte[128];
     public byte[] magicCookie = new byte[4];
-    public ArrayList<Options> options = new ArrayList<>();
+    private ArrayList<Options> options = new ArrayList<>();
 
     public DHCPMessage() {
     }
@@ -173,18 +173,6 @@ public class DHCPMessage {
             length += option.getTotalLength();
         }
         return length;
-    }
-
-    public void resetOptions() {
-        options.clear();
-    }
-
-    public byte[] getOptionData(byte opCode) {
-        for (Options opt : options) {
-            if (opt.getCode() == opCode)
-                return opt.getData();
-        }
-        return null;
     }
 
     public void clearOptions() {

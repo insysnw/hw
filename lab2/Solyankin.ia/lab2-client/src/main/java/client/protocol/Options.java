@@ -34,9 +34,7 @@ public class Options {
         byte[] toSend = new byte[K];
         toSend[0] = code;
         toSend[1] = length;
-        for (int i = 0; i < length; i++) {
-            toSend[i + 2] = data[i];
-        }
+        if (length >= 0) System.arraycopy(data, 0, toSend, 2, length);
         return toSend;
     }
 
