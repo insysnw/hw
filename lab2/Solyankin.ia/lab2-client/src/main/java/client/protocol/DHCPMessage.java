@@ -203,7 +203,8 @@ public class DHCPMessage {
         for (Options opt : options)
             toStringOptions.append(opt.toString()).append("\n");
 
-        return "op: " + Tools.unsignedByte(op)
+        return "<===============================================================>"
+                + "\nop: " + Tools.unsignedByte(op)
                 + "\nhType: " + Tools.unsignedByte(hType)
                 + "\nhLen: " + Tools.unsignedByte(hLen)
                 + "\nhOps: " + Tools.unsignedByte(hOps)
@@ -218,6 +219,7 @@ public class DHCPMessage {
                 + "\nsName: " + Arrays.toString(Tools.unsignedBytes(sName))
                 + "\nfile :" + Arrays.toString(Tools.unsignedBytes(file))
                 + "\nmagicCookie: " + Arrays.toString(Tools.unsignedBytes(magicCookie))
-                + toStringOptions;
+                + toStringOptions
+                + "<===============================================================>\n";
     }
 }

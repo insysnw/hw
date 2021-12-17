@@ -4,28 +4,27 @@ import client.protocol.DHCPMessage;
 import client.protocol.Tools;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.nio.ByteBuffer;
 
 public class DHCPClient extends Thread {
-    private final String host;
-    private final int port;
+    private final static Integer clientPort = 67;
+    private final static int serverPort = 68;
+    private final static byte[] clientHost = new byte[]{0, 0, 0, 0};
+    private final static byte[] serverHost = new byte[]{(byte) 255, (byte) 255, (byte) 255, (byte) 255};
     private DatagramSocket clientSocket;
 
     private final byte[] mac = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-    public DHCPClient(String host, int port) {
-        this.host = host;
-        this.port = port;
+    public DHCPClient() {
         try {
-            clientSocket = new DatagramSocket();
+            clientSocket = new DatagramSocket(clientPort, InetAddress.getByAddress(clientHost));
         } catch (SocketException e) {
             System.out.println("Error while creating clientSocket: " + e.getMessage());
             e.printStackTrace();
             System.exit(-1);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         }
     }
 
@@ -40,22 +39,23 @@ public class DHCPClient extends Thread {
         boolean ackReceived = false;
         while (!ackReceived) {
             try {
-                clientSocket.setSoTimeout(5000);
+                clientSocket.setSoTimeout(600000);
                 clientSocket.receive(receivePacketOffer);
                 System.out.println("Receive offer response from server");
             } catch (IOException e) {
                 System.out.println("Error while receive offer response: " + e.getMessage());
                 System.exit(-1);
             }
-            DHCPMessage offer = new DHCPMessage(receivePacketOffer.getData());
-            System.out.println(offer);
+            //DHCPMessage offer = new DHCPMessage(receivePacketOffer.getData());
+            //System.out.println(offer);
 
             DHCPRequest(receivePacketOffer);
 
             DatagramPacket receivePacketAck = new DatagramPacket(buffer, length);
             try {
                 clientSocket.receive(receivePacketAck);
-                System.out.print("Receive ack response from server");
+                System.out.println("Receive ack response from server");
+                System.out.println();
             } catch (IOException e) {
                 System.out.println("Error while receive ack response: " + e.getMessage());
                 e.printStackTrace();
@@ -63,11 +63,11 @@ public class DHCPClient extends Thread {
             }
 
             DHCPMessage acknowledge = new DHCPMessage(receivePacketAck.getData());
-            System.out.println(acknowledge);
+            //System.out.println(acknowledge);
 
             switch (acknowledge.getType()) {
                 case DHCPMessage.DHCPACK:
-                    System.out.println("IP Allocated to this client: ");
+                    System.out.print("Allocated ip: ");
                     for (byte b : acknowledge.yiAddr)
                         System.out.print((b & 0xFF) + ".");
                     System.out.println();
@@ -104,14 +104,14 @@ public class DHCPClient extends Thread {
         message.file = new byte[128];
         message.magicCookie = DHCPMessage.COOKIE;
         message.addOption((byte) 53, (byte) 1, new byte[]{DHCPMessage.DHCPDISCOVER});
-        message.addOption((byte) 50, (byte) 4, new byte[]{(byte) 192, (byte) 168, 1, 0});
-        message.addOption((byte) 51, (byte) 4, Tools.toByteArray(30));
+        message.addOption((byte) 51, (byte) 4, Tools.toByteArray(300));
         message.addOption((byte) 255, (byte) 0, new byte[]{0});
 
         try {
-            DatagramPacket discoverPacket = new DatagramPacket(message.getMessage(), message.getLength(), InetAddress./*getByAddress(host.getBytes())*/getByName(host), port);
+            DatagramPacket discoverPacket = new DatagramPacket(message.getMessage(), message.getLength(), InetAddress.getByAddress(serverHost), serverPort);
             clientSocket.send(discoverPacket);
             System.out.println("DHCPDiscover sent");
+            System.out.println();
         } catch (IOException e) {
             System.out.println("Error while sending discover packet: " + e.getMessage());
             e.printStackTrace();
@@ -129,9 +129,9 @@ public class DHCPClient extends Thread {
 
         message.addOption((byte) 53, (byte) 1, new byte[]{DHCPMessage.DHCPREQUEST});
         message.addOption((byte) 50, (byte) 4, message.yiAddr);
-        message.yiAddr = new byte[]{0, 0, 0, 0};
+//        message.yiAddr = new byte[]{0, 0, 0, 0};
         message.addOption((byte) 54, (byte) 4, message.siAddr);
-        message.addOption((byte) 51, (byte) 4, Tools.toByteArray(30));
+        message.addOption((byte) 51, (byte) 4, Tools.toByteArray(300));
         message.addOption((byte) 255, (byte) 0, new byte[]{0});
 
         try {
@@ -139,6 +139,7 @@ public class DHCPClient extends Thread {
             DatagramPacket discoverPacket = new DatagramPacket(message.getMessage(), message.getLength(), InetAddress.getByAddress(message.siAddr), portServer);
             clientSocket.send(discoverPacket);
             System.out.println("DHCPRequest sent");
+            System.out.println();
         } catch (IOException e) {
             System.out.println("Error while sending request packet: " + e.getMessage());
             e.printStackTrace();
