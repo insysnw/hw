@@ -63,8 +63,14 @@ public class DHCPClient extends Thread {
         switch (acknowledge.getType()) {
             case DHCPMessage.DHCPACK:
                 System.out.print("Allocated ip: ");
-                for (byte b : acknowledge.yiAddr)
-                    System.out.print((b & 0xFF) + ".");
+                for (int i = 0; i < acknowledge.yiAddr.length; i++) {
+                    byte b = acknowledge.yiAddr[i];
+                    if (i != acknowledge.yiAddr.length - 1) {
+                        System.out.print((b & 0xFF) + ".");
+                    } else {
+                        System.out.print((b & 0xFF));
+                    }
+                }
                 System.out.println();
                 break;
             case DHCPMessage.DHCPNAK:
