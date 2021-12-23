@@ -48,6 +48,6 @@
 | Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
 | Sherepa.NM    | +  | +  |        |        |          |          |
 | Smirnov.LD    |    |    |        |        |          |          |
-| Smirnov.NV    |    | +  |        |        |          |          |
+| Smirnov.NV    | +  | +  |        |        |          |          |
 | Sukhachev.NA  | +  | +  | TFTP + | NTP +  | 1.2.14 + | 1.2.11 + |
 | Tkachenko.DYU | +  | +  | NTP +  | DNS +  | 1.2.5 +  | 1.2.6 +  |
