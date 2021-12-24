@@ -226,4 +226,4 @@ class DHCP_server():
         return 0
 
 if __name__ == '__main__':
-    DHCP_server(6767, 6868)
+    DHCP_server(67, 68)
