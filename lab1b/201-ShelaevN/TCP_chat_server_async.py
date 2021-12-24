@@ -13,7 +13,6 @@ Protocol:
 class TCP_chat_async_server():
 
     def __init__(self):
-        self.FILE_PATH = '../TCP_server'
         self.FILE_SPLIT = '?/:'
 
         self.CLIENTS = {'TCP-server':'-'}
@@ -52,13 +51,6 @@ class TCP_chat_async_server():
             pass
         return
 
-    async def make_file(self, message):
-        message_split = message.split(self.FILE_SPLIT, 1)
-        file_path = self.FILE_PATH + '/' + message_split[0]
-        with open(file_path, 'w') as file:
-            file.writelines(message_split[1].split('\r'))
-        return
-
     async def makeNewData(self, data, message):
         name_encode = 'TCP-server'.encode('utf-8')
         message_encode = message.encode('utf-8')
@@ -75,10 +67,7 @@ class TCP_chat_async_server():
         for i in range(1, len(data_hex)):
             data_bin += (bin(int(data_hex[i], 16))[2:]).zfill(4)
         length_name = await self.bitToInt(data_bin[17:23]) * 8
-        flag_file = await self.bitToInt(data_bin[23:24])
-        name_end = 24 + length_name
-        name = await self.byte_decode(data_bin[24:name_end])    
-        message = await self.byte_decode(data_bin[name_end:])
+        name = await self.byte_decode(data_bin[24:(24 + length_name)])    
         # print(connect.getsockname())
         if name in self.CLIENTS.keys() and self.CLIENTS[name] != connect:
             await self.send_answer(connect, 'ERROR-Name')
@@ -90,7 +79,6 @@ class TCP_chat_async_server():
         if message.lower() in ['-q', 'quit', 'exit']:
             self.CLIENTS.pop(name)
             dataNew = await self.makeNewData(data_bin, f'\t <{name}> exited from the chat!')
-        if flag_file: await self.make_file(message)
         # print(dataNew)
         for client in self.CLIENTS:
             if client != 'TCP-server':
