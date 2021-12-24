@@ -16,7 +16,8 @@ class TCP_chat_client():
     def __init__(self):
         self.TIME_DIFF = int(datetime.now(timezone.utc).astimezone().utcoffset().total_seconds() / 3600)
 
-        self.FILE_PATH = '../TCP_client'
+        self.FILE_PATH_FROM = '../../TCP_client_from'
+        self.FILE_PATH_TO   = '../../TCP_client_to'
         self.FILE_SPLIT = '?/:'
 
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -88,7 +89,7 @@ class TCP_chat_client():
         return name_encode
 
     def send_file(self, file_name):
-        file_path = self.FILE_PATH + '/' + file_name
+        file_path = self.FILE_PATH_FROM + '/' + file_name
         file_name_encode = (file_name + self.FILE_SPLIT).encode('utf-8')
         try:
             with open(file_path, 'rb') as file:
@@ -130,12 +131,19 @@ class TCP_chat_client():
             except ConnectionError as e: break
         return
 
+    def make_file(self, message):
+        message_split = message.split(self.FILE_SPLIT, 1)
+        file_path = self.FILE_PATH_TO + '/' + message_split[0]
+        with open(file_path, 'w+') as file:
+            file.writelines(message_split[1].split('\r'))
+        return message_split[0]
+
     def print_result(self, time, name, message, flag_file):
-        if flag_file:
-            message = '(file) ' + message.split(self.FILE_SPLIT, 1)[0]
+        messageNew = message
+        if flag_file: messageNew = '(file) ' + self.make_file(message)
         namePrint = f'<{name}>' + ':'
         if name == 'TCP-server': namePrint = ''
-        print('\n\t\t\t[%2d:%2d:%2d] %s %s' %(time[0], time[1], time[2], namePrint, message))
+        print('\n\t\t\t[%2d:%2d:%2d] %s %s' %(time[0], time[1], time[2], namePrint, messageNew))
         print('\t > ')
         return
 

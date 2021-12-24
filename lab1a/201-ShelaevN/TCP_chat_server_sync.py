@@ -12,7 +12,6 @@ Protocol:
 class TCP_chat_sync_server():
 
     def __init__(self):
-        self.FILE_PATH = '../TCP_server'
         self.FILE_SPLIT = '?/:'
 
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,7 +19,7 @@ class TCP_chat_sync_server():
         self.SOCKET.bind(('', 7575))
         self.SOCKET.listen(5)
 
-        self.CLIENTS = {'TCP-server':self.SOCKET}
+        self.CLIENTS = {'TCP-server':'-'}
         self.main()
 
     def bitToInt(self, data):
@@ -54,13 +53,6 @@ class TCP_chat_sync_server():
             pass
         return
 
-    def make_file(self, message):
-        message_split = message.split(self.FILE_SPLIT, 1)
-        file_path = self.FILE_PATH + '/' + message_split[0]
-        with open(file_path, 'w') as file:
-            file.writelines(message_split[1].split('\r'))
-        return
-
     def makeNewData(self, data, message):
         name_encode = 'TCP-server'.encode('utf-8')
         message_encode = message.encode('utf-8')
@@ -76,12 +68,9 @@ class TCP_chat_sync_server():
         data_bin = (bin(int(data_hex[0], 16))[2:]).zfill(4)
         for i in range(1, len(data_hex)):
             data_bin += (bin(int(data_hex[i], 16))[2:]).zfill(4)
-        length_name = self.bitToInt(data_bin[17:23]) * 8
-        flag_file = self.bitToInt(data_bin[23:24])
-        name_end = 24 + length_name
-        name = self.byte_decode(data_bin[24:name_end])    
-        message = self.byte_decode(data_bin[name_end:])
-        print(connect.getsockname())
+        length_name = self.bitToInt(data_bin[17:23]) * 8 
+        name = self.byte_decode(data_bin[24:(24 + length_name)])    
+        # print(connect.getsockname())
         if name in self.CLIENTS.keys() and self.CLIENTS[name] != connect:
             self.send_answer(connect, 'ERROR-Name')
             return
@@ -92,7 +81,6 @@ class TCP_chat_sync_server():
         if message.lower() in ['-q', 'quit', 'exit']:
             self.CLIENTS.pop(name)
             dataNew = self.makeNewData(data_bin, f'\t <{name}> exited from the chat!')
-        if flag_file: self.make_file(message)
         # print(dataNew)
         for client in self.CLIENTS:
             if client != 'TCP-server':
