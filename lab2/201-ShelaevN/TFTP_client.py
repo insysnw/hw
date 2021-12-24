@@ -186,12 +186,14 @@ class TFTP_client_class():
     def parser_string(self, input_string):
         inp_str = sub(r'\s+|\t', ' ', input_string.strip().lower())
         input_array = inp_str.split(' ')
-        req = 'RRQ'
-        filename = 'test.txt'
         mode = 'netascii'
         if len(input_array) < 3:
             return '\n\t Error! Unvalid input...'       
-        if input_array[0] in ['-w',  '--write', 'write']: req = 'WRQ'
+        if   input_array[0] in ['-w',  '--write', 'write']: req = 'WRQ'
+        elif input_array[0] in ['-r',  '--read',   'read']: req = 'RRQ'
+        else:
+            print('\n\t Error! Invalid input!')
+            return -1
         filename = input_array[1]
         if input_array[2] == 'octet': mode = 'octet'
         for i in range(3, len(input_array), 2):
@@ -203,14 +205,16 @@ class TFTP_client_class():
                 elif flag in ['-ts', '--tsize']:   self.OPTIONS['tsize']   = int(value)
             except ValueError:
                 print('\n\t Error! Invalid input!')
-                break
+                return -1
         return (filename, req, mode)
    
     def main(self, port):
         while True:
             self.SERVER_ADDRESS = ('127.0.0.1', port)
             input_string = input('\n\t Please, inter the flags: > ')
-            filename, req, mode = self.parser_string(input_string)
+            result_parser = self.parser_string(input_string)
+            if result_parser == -1: continue
+            else: filename, req, mode = result_parser
             self.send_start_message(filename, req, mode) 
             if self.FLAG_OACK:
                 if self.recv_OACK() == -1:
@@ -228,4 +232,4 @@ class TFTP_client_class():
         return 0
 
 if __name__ == '__main__':
-    TFTP_client_class(6969)
+    TFTP_client_class(69)
