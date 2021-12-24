@@ -19,7 +19,7 @@ SERVER_ERROR_MSG = {
     6 : 'File already exists',
     7 : 'No such user' }
 
-"""
+'''
                 2 bytes    string    1 byte    string   1 byte         1 byte
                ---------------------------------------------------------------
       RRQ/WRQ  | 01/02 |  Filename  |  0  |    Mode    |  0  | OPTIONS |  0  |
@@ -45,7 +45,7 @@ SERVER_ERROR_MSG = {
    Option_ACK  |  06  | OPTIONS |  0  |
                ------------------------
 
-"""
+'''
 
 DEFAULT_OPTIONS = {'timeout':3, 'tsize':1024, 'blksize':516}
 
@@ -150,14 +150,17 @@ class TFTP_client_class():
             print(get_message)
             if int.from_bytes(get_message[:2], byteorder = 'big') == 5:
                 return get_message[4:-1].decode('ascii')
-            
+        
+        symbol = 'r'
+        if mode == 'octet': symbol += 'b'
         try:
-            file = open('test.txt', 'r')
+            file = open('test.txt', symbol)
             data_bytes = file.read()
             file.close()
         except FileNotFoundError:
             return f'\n\tError! File <{filename}> does not exist!'
-        data_bytes = data_bytes.replace('\n', '\r\n').encode('ascii', 'replace')
+        if mode == 'netascii':
+            data_bytes = data_bytes.replace('\n', '\r\n').encode('ascii', 'replace')
         number_block = 1
         start = 0
         retry_count = 0
