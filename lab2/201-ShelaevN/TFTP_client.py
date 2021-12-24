@@ -154,9 +154,9 @@ class TFTP_client_class():
         try:
             file = open('test.txt', 'r')
             data_bytes = file.read()
+            file.close()
         except FileNotFoundError:
             return f'\n\tError! File <{filename}> does not exist!'
-        finally: file.close()
         data_bytes = data_bytes.replace('\n', '\r\n').encode('ascii', 'replace')
         number_block = 1
         start = 0

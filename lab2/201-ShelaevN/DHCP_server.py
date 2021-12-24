@@ -51,8 +51,12 @@ class DHCP_server():
         self.DynamicIPTime = dict()
         self.DynamicIPArray = [f'192.168.5.{x}' for x in range(35, 255)]
         self.IPADDRESS = self.DynamicIPArray.pop(0)
+
+        self.PORT_IN  = PORT_IN
+        self.PORT_OUT = PORT_OUT
+
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.SOCKET.bind(('127.0.0.11', PORT_IN))
+        self.SOCKET.bind(('127.0.0.11', self.PORT_IN))
         self.SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.main()
     
@@ -192,12 +196,12 @@ class DHCP_server():
         packet = self.parserPacket(PacketStructDict.copy(), data)
         if packet['op'] == 'DHCPDISCOVER':
             packetOffer = self.createDHCPPacket(packet, 'OFFER')
-            self.SOCKET.sendto(packetOffer, ('255.255.255.255', PORT_OUT))
+            self.SOCKET.sendto(packetOffer, ('255.255.255.255', self.PORT_OUT))
         elif packet['op'] == 'DHCPREQUEST' or packet['op'] == 'DHCPINFORM':
             mode = 'ACK'
             if self.IPADDRESS == '1.1.1.1': mode = 'NAK'
             packetACK = self.createDHCPPacket(packet, mode)
-            self.SOCKET.sendto(packetACK, ('255.255.255.255', PORT_OUT))
+            self.SOCKET.sendto(packetACK, ('255.255.255.255', self.PORT_OUT))
             if packet['op'] == 'DHCPREQUEST': self.MAC2IPAddress(packet)
         elif packet['op'] == 'DHCPDECLINE' or packet['op'] == 'DHCPRELEASE':
             lock = threading.Lock()
