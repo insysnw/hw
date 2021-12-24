@@ -206,9 +206,9 @@ class DHCP_server():
                 self.DynamicIPTime.pop(self.IPADDRESS)
                 self.DynamicIPDict.pop(self.IPADDRESS)
                 if packet['op'] == 'DHCPRELEASE': self.DynamicIPArray.append(self.IPADDRESS)
+                else: print('\n\t Error! DHCPDECLINE...(This IP-address is already used)')
             finally:
-                lock.release()
-        else: print('\n\t Error! DHCPDECLINE...(This IP-address is already used)')
+                lock.release()       
         return 0
 
     def main(self):
@@ -226,4 +226,4 @@ class DHCP_server():
         return 0
 
 if __name__ == '__main__':
-    DHCP_server(67, 68)
+    DHCP_server(6767, 6868)
