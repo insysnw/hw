@@ -116,7 +116,7 @@ class TCP_chat_client():
                 print(' ERROR! Empty message!')
                 continue
             flag_check = message.split(' ', 1)
-            if message.lower() in ['-q',  'quit', 'exit']:
+            if message.lower() in ['-q', '--quit', 'exit']:
                 self.BREAK_FLAG = True
             message_encode = message.encode('utf-8')
             if flag_check[0].lower() in ['-f', '--file']:
@@ -133,9 +133,9 @@ class TCP_chat_client():
     def print_result(self, time, name, message, flag_file):
         if flag_file:
             message = '(file) ' + message.split(self.FILE_SPLIT, 1)[0]
-        namePrint = name
+        namePrint = f'<{name}>' + ':'
         if name == 'TCP-server': namePrint = ''
-        print('\n\t\t\t[%2d:%2d:%2d] <%s>: %s' %(time[0], time[1], time[2], namePrint, message))
+        print('\n\t\t\t[%2d:%2d:%2d] %s %s' %(time[0], time[1], time[2], namePrint, message))
         print('\t > ')
         return
 

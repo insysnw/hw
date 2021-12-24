@@ -1,0 +1,8 @@
+?/: Hi! This is a test case for transferring a file between a client and a server over TCP. ?/:
+1
+2
+3
+4
+5
+
+?/: Good luck!!! ?/:
