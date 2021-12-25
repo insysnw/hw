@@ -15,7 +15,7 @@ default_address = '192.168.0.1'
 host_address = '0.0.0.0'
 server_port = 67
 
-addresses = []
+mac_to_ip = {}
 
 print('DHCP server running on', host_address, ':', server_port)
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -82,7 +82,8 @@ def handle_decline():
 def handle_release(msg):
     print('DHCPRELEASE accepted')
     ciaddr = msg[12:16]
-    addresses.remove(ciaddr)
+    chaddr = msg[28:44]
+    del mac_to_ip[chaddr]
     print([byte for byte in ciaddr], 'removed')
 
 
@@ -99,14 +100,16 @@ def build_packet(msg):
     # если он занят, либо опция 50 не выставлена, то даем новый
     msg_yiaddr = msg[245:249]
     byte_host_address = bytearray([int(byte) for byte in host_address.split('.')])
-    if msg[243] == 50 and msg_yiaddr not in addresses and msg_yiaddr != byte_host_address:
+    if packet.chaddr in mac_to_ip:
+        packet.yiaddr = mac_to_ip[packet.chaddr]
+    elif msg[243] == 50 and msg_yiaddr not in mac_to_ip.values() and msg_yiaddr != byte_host_address:
         packet.yiaddr = msg_yiaddr
     else:
         # получаем новый IP адрес
         yiaddr = byte_host_address
         while yiaddr[3] < 255:
             yiaddr[3] = yiaddr[3] + 1
-            if yiaddr not in addresses:
+            if yiaddr not in mac_to_ip.values():
                 packet.yiaddr = yiaddr
                 break
 
@@ -116,7 +119,7 @@ def build_packet(msg):
         print('offered address: ', [byte for byte in packet.yiaddr])
     elif msg_type == DHCPREQUEST:
         packet.options[6] = DHCPACK
-        addresses.append(packet.yiaddr)
+        mac_to_ip[packet.chaddr] = packet.yiaddr
         print('assigned address: ', [byte for byte in packet.yiaddr])
 
     return packet.build()
