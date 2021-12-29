@@ -26,67 +26,169 @@ The following section describes all packets defined by this protocol. There are 
 
 #### `ConnectionRequest` packet
 
-[TODO]
+These packets have the event field equal to 0.
+
+The packet body (in that order):
+* `usernameLength` (number, 1 byte)
+* `username` (string, `usernameLength` bytes, up to 256 bytes)
+
+These packets are sent from a client to the server.
 
 #### `ConnectionAccepted` packet
 
-[TODO]
+These packets have the event field equal to 1.
+
+These packets do not have a packet body.
+
+These packets are sent from the server to clients.
 
 #### `ConnectionNotification` packet
 
-[TODO]
+These packets have the event field equal to 2.
+
+The packet body (in that order):
+* `timestamp` (timestamp)
+* `usernameLength` (number, 1 byte)
+* `username` (string, `usernameLength` bytes, up to 256 bytes)
+
+These packets are sent from the server to clients.
 
 #### `ConnectionRejected` packet
 
-[TODO]
+These packets have the event field equal to 3.
+
+These packets do not have a packet body.
+
+These packets are sent from the server to clients.
 
 #### `DisconnectionNotification` packet
 
-[TODO]
+These packets have the event field equal to 4.
+
+The packet body (in that order):
+* `timestamp` (timestamp)
+* `usernameLength` (number, 1 byte)
+* `username` (string, `usernameLength` bytes, up to 256 bytes)
+
+These packets are sent from the server to clients.
 
 #### `MessageSent` packet
 
-[TODO]
+These packets have the event field equal to 5.
+
+The packet body (in that order):
+* `messageLength` (number, 2 bytes)
+* `message` (string, `messageLength` bytes, up to 64 KiB)
+
+These packets are sent from a client to the server.
 
 #### `MessageNotification` packet
 
-[TODO]
+These packets have the event field equal to 6.
+
+The packet body (in that order):
+* `timestamp` (timestamp)
+* `usernameLength` (number, 1 byte)
+* `messageLength` (number, 2 bytes)
+* `username` (string, `usernameLength` bytes, up to 256 bytes)
+* `message` (string, `messageLength` bytes, up to 64 KiB)
+
+These packets are sent from the server to clients.
 
 #### `FileUpload` packet
 
-[TODO]
+These packets have the event field equal to 7.
+
+The packet body (in that order):
+* `fileId` (number, 2 bytes)
+* `fileSize` (number, 4 bytes)
+* `fileExtensionLength` (number, 1 byte)
+* `fileExtension` (string, `fileExtensionLength` bytes, up to 256 bytes)
+
+These packets are sent from a client to the server.
 
 #### `FileUploadAccepted` packet
 
-[TODO]
+These packets have the event field equal to 8.
+
+The packet body (in that order):
+* `fileId` (number, 2 bytes)
+* `socketPort` (number, 2 bytes)
+
+These packets are sent from the server to clients.
 
 #### `FileUploaded` packet
 
-[TODO]
+These packets have the event field equal to 9.
+
+The packet body (in that order):
+* `file` (binary data, up to 4 GiB)
+
+These packets are sent from a client to the server.
 
 #### `FileNotification` packet
 
-[TODO]
+These packets have the event field equal to 10.
+
+The packet body (in that order):
+* `timestamp` (timestamp)
+* `fileSizeInfo` (number, 4 bytes)
+* `usernameLength` (number, 1 byte)
+* `filenameLength` (number, 2 bytes)
+* `username` (string, `usernameLength` bytes, up to 256 bytes)
+* `filename` (string, `filenameLength` bytes, up to 64 KiB)
+
+These packets are sent from the server to clients.
 
 #### `FileUploadRejected` packet
 
-[TODO]
+These packets have the event field equal to 11.
+
+The packet body (in that order):
+* `fileId` (number, 2 bytes)
+
+These packets are sent from the server to clients.
 
 #### `FileDownload` packet
 
-[TODO]
+These packets have the event field equal to 12.
+
+The packet body (in that order):
+* `filenameLength` (number, 2 bytes)
+* `filename` (string, `filenameLength` bytes, up to 64 KiB)
+
+These packets are sent from a client to the server.
 
 #### `FileDownloadAccepted` packet
 
-[TODO]
+These packets have the event field equal to 13.
+
+The packet body (in that order):
+* `socketPort` (number, 2 bytes)
+* `filenameLength` (number, 2 bytes)
+* `filename` (string, `filenameLength` bytes, up to 64 KiB)
+
+These packets are sent from the server to clients.
 
 #### `FileDownloaded` packet
 
-[TODO]
+These packets have the event field equal to 14.
+
+The packet body (in that order):
+* `fileSize` (number, 4 bytes)
+* `file` (binary data, `fileSize` bytes, up to 4 GiB)
+
+These packets are sent from the server to clients.
 
 #### `FileDownloadRejected` packet
 
-[TODO]
+These packets have the event field equal to 15.
+
+The packet body (in that order):
+* `filenameLength` (number, 2 bytes)
+* `filename` (string, `filenameLength` bytes, up to 64 KiB)
+
+These packets are sent from the server to clients.
 
 ## Interactions
 
