@@ -4,9 +4,9 @@
 
 ## Data conventions
 
-**UTF-8 character encoding** is implied when it comes to byte representation of any string.
+**Big endianness** is implied when it comes to any byte representation.
 
-**Big endianness** is implied when it comes to byte representation of any number.
+**UTF-8 character encoding** is implied when it comes to byte representation of any string.
 
 All timestamps are **64-bit** and in **Unix time** (number of seconds since 00:00:00 UTC on 1 January 1970).
 
@@ -18,7 +18,7 @@ Each packet consists of a *header* and a *body*. A packet header is 2 bytes long
 the **protocol version** in use and a 1-byte-long field for the **event** denoted by the packet. A packet body is
 determined solely by the packet's event.
 
-For the purposes of this document, the protocol version of all packets is considered equal to 1.
+For the purposes of this document, the protocol version field of all packets is considered equal to 1.
 
 The following section describes all packets defined by this protocol. There are 16 available packets in total.
 
