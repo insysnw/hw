@@ -101,7 +101,7 @@ These packets have the event field equal to 7.
 
 The packet body (in that order):
 * `fileId` (number, 2 bytes)
-* `fileSize` (number, 4 bytes)
+* `fileSize` (number, 3 bytes)
 * `fileExtensionLength` (number, 1 byte)
 * `fileExtension` (string, `fileExtensionLength` bytes, up to 256 bytes)
 
@@ -122,7 +122,7 @@ These packets are sent from the server to clients.
 These packets have the event field equal to 9.
 
 The packet body (in that order):
-* `file` (binary data, up to 4 GiB)
+* `file` (binary data, up to 16 MiB)
 
 These packets are sent from a client to the server.
 
@@ -132,7 +132,7 @@ These packets have the event field equal to 10.
 
 The packet body (in that order):
 * `timestamp` (timestamp)
-* `fileSizeInfo` (number, 4 bytes)
+* `fileSizeInfo` (number, 3 bytes)
 * `usernameLength` (number, 1 byte)
 * `filenameLength` (number, 2 bytes)
 * `username` (string, `usernameLength` bytes, up to 256 bytes)
@@ -175,8 +175,8 @@ These packets are sent from the server to clients.
 These packets have the event field equal to 14.
 
 The packet body (in that order):
-* `fileSize` (number, 4 bytes)
-* `file` (binary data, `fileSize` bytes, up to 4 GiB)
+* `fileSize` (number, 3 bytes)
+* `file` (binary data, `fileSize` bytes, up to 16 MiB)
 
 These packets are sent from the server to clients.
 
