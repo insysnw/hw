@@ -20,7 +20,7 @@ determined solely by the packet's event.
 
 For the purposes of this document, the protocol version field of all packets is considered equal to 1.
 
-The following section describes all packets defined by this protocol. There are 16 available packets in total.
+The following section describes all packets defined by this protocol. There are 10 available packets in total.
 
 ### Individual packets
 
@@ -95,98 +95,40 @@ The packet body (in that order):
 
 These packets are sent from the server to clients.
 
-#### `FileUpload` packet
+#### `FileSent` packet
 
 These packets have the event field equal to 7.
 
 The packet body (in that order):
-* `fileId` (number, 2 bytes)
-* `fileSizeInfo` (number, 3 bytes)
-* `fileExtensionLength` (number, 1 byte)
-* `fileExtension` (string, `fileExtensionLength` bytes, up to 256 bytes)
+* `filenameLength` (number, 1 byte)
+* `fileSize` (number, 3 bytes)
+* `filename` (string, `messageLength` bytes, up to 256 bytes)
+* `file` (string, `fileSize` bytes, up to 16 MiB)
 
 These packets are sent from a client to the server.
 
-#### `FileUploadAccepted` packet
+#### `FileNotificationPending` packet
 
 These packets have the event field equal to 8.
 
 The packet body (in that order):
-* `fileId` (number, 2 bytes)
 * `socketPort` (number, 2 bytes)
+* `expirationTime` (timestamp)
 
 These packets are sent from the server to clients.
 
-#### `FileUploaded` packet
+#### `FileNotification` packet
 
 These packets have the event field equal to 9.
 
 The packet body (in that order):
-* `file` (binary data, up to 16 MiB)
-
-These packets are sent from a client to the server.
-
-#### `FileNotification` packet
-
-These packets have the event field equal to 10.
-
-The packet body (in that order):
 * `timestamp` (timestamp)
-* `fileSizeInfo` (number, 3 bytes)
 * `usernameLength` (number, 1 byte)
-* `filenameLength` (number, 2 bytes)
-* `username` (string, `usernameLength` bytes, up to 256 bytes)
-* `filename` (string, `filenameLength` bytes, up to 64 KiB)
-
-These packets are sent from the server to clients.
-
-#### `FileUploadRejected` packet
-
-These packets have the event field equal to 11.
-
-The packet body (in that order):
-* `fileId` (number, 2 bytes)
-
-These packets are sent from the server to clients.
-
-#### `FileDownload` packet
-
-These packets have the event field equal to 12.
-
-The packet body (in that order):
-* `filenameLength` (number, 2 bytes)
-* `filename` (string, `filenameLength` bytes, up to 64 KiB)
-
-These packets are sent from a client to the server.
-
-#### `FileDownloadAccepted` packet
-
-These packets have the event field equal to 13.
-
-The packet body (in that order):
-* `socketPort` (number, 2 bytes)
-* `filenameLength` (number, 2 bytes)
-* `filename` (string, `filenameLength` bytes, up to 64 KiB)
-
-These packets are sent from the server to clients.
-
-#### `FileDownloaded` packet
-
-These packets have the event field equal to 14.
-
-The packet body (in that order):
+* `filenameLength` (number, 1 byte)
 * `fileSize` (number, 3 bytes)
-* `file` (binary data, `fileSize` bytes, up to 16 MiB)
-
-These packets are sent from the server to clients.
-
-#### `FileDownloadRejected` packet
-
-These packets have the event field equal to 15.
-
-The packet body (in that order):
-* `filenameLength` (number, 2 bytes)
-* `filename` (string, `filenameLength` bytes, up to 64 KiB)
+* `username` (string, `usernameLength` bytes, up to 256 bytes)
+* `filename` (string, `filenameLength` bytes, up to 256 bytes)
+* `file` (string, `fileSize` bytes, up to 16 MiB)
 
 These packets are sent from the server to clients.
 
