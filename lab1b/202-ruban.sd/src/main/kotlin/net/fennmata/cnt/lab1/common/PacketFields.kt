@@ -22,4 +22,6 @@ object File : VariableWidthField(FileSize)
 object FileExtension : VariableWidthField(FileExtensionLength)
 object Filename : VariableWidthField(FilenameLength)
 
+val ConstantWidthField.maxValue: Int get() = (-1 shl 8 * width).inv()
+
 val VariableWidthField.maxWidth: Int get() = (1 shl 8 * widthStorage.width) - 1

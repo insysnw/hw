@@ -132,6 +132,122 @@ data class MessageNotification(
     }
 }
 
+data class FileUpload(
+    val fileId: Int,
+    val fileSizeInfo: Int,
+    val fileExtension: String
+) : Packet(FileUploadEvent) {
+    private val fileExtensionBytes = fileExtension.encodeToByteArray()
+    private val fileExtensionLength = fileExtensionBytes.size
+
+    init {
+        check(fileId <= FileId.maxValue) { "File ID is too big for transmission" }
+        check(fileSizeInfo <= FileSize.maxValue) { "File size is too big for transmission" }
+        check(fileExtensionLength <= FileExtension.maxWidth) { "File extension is too big for transmission" }
+    }
+
+    override val body: ByteArray by lazy {
+        val buffer = ByteBuffer.allocate(event.bodyConstsWidth + fileExtensionLength)
+        buffer.apply {
+            put(fileId.toByteArray(FileId.width))
+            put(fileSizeInfo.toByteArray(FileSize.width))
+            put(fileExtensionLength.toByteArray(FileExtensionLength.width))
+            put(fileExtensionBytes)
+        }
+        buffer.array()
+    }
+}
+
+data class FileUploadAccepted(
+    val fileId: Int,
+    val socketPort: Int
+) : Packet(FileUploadAcceptedEvent) {
+    init {
+        check(fileId <= FileId.maxValue) { "File ID is too big for transmission" }
+        check(socketPort <= SocketPort.maxValue) { "Socket port is too big for transmission" }
+    }
+
+    override val body: ByteArray by lazy {
+        val buffer = ByteBuffer.allocate(event.bodyConstsWidth)
+        buffer.apply {
+            put(fileId.toByteArray(FileId.width))
+            put(socketPort.toByteArray(SocketPort.width))
+        }
+        buffer.array()
+    }
+}
+
+data class FileUploaded(
+    val file: ByteArray
+) : Packet(FileUploadedEvent) {
+    init {
+        check(file.size <= File.maxWidth) { "File is too big for transmission" }
+    }
+
+    override val body: ByteArray get() = file
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as FileUploaded
+
+        if (!file.contentEquals(other.file)) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return file.contentHashCode()
+    }
+}
+
+data class FileNotification(
+    val timestamp: OffsetDateTime,
+    val fileSizeInfo: Int,
+    val username: String,
+    val filename: String
+) : Packet(FileNotificationEvent) {
+    private val usernameBytes = username.encodeToByteArray()
+    private val usernameLength = usernameBytes.size
+    private val filenameBytes = filename.encodeToByteArray()
+    private val filenameLength = filenameBytes.size
+
+    init {
+        check(usernameLength <= Username.maxWidth) { "Username is too big for transmission" }
+        check(filenameLength <= Filename.maxWidth) { "Filename is too big for transmission" }
+    }
+
+    override val body: ByteArray by lazy {
+        val buffer = ByteBuffer.allocate(event.bodyConstsWidth + usernameLength + filenameLength)
+        buffer.apply {
+            putLong(timestamp.toEpochSecond())
+            put(fileSizeInfo.toByteArray(FileSizeInfo.width))
+            put(usernameLength.toByteArray(UsernameLength.width))
+            put(filenameLength.toByteArray(FilenameLength.width))
+            put(usernameBytes)
+            put(filenameBytes)
+        }
+        buffer.array()
+    }
+}
+
+data class FileUploadRejected(
+    val fileId: Int
+) : Packet(FileUploadRejectedEvent) {
+    init {
+        check(fileId <= FileId.maxValue) { "File ID is too big for transmission" }
+    }
+
+    override val body: ByteArray by lazy {
+        val buffer = ByteBuffer.allocate(event.bodyConstsWidth)
+        buffer.apply {
+            put(fileId.toByteArray(FileId.width))
+        }
+        buffer.array()
+    }
+}
+
 // TODO define all other packets
 
 fun PacketEvent.getAdditionalBodyVarsWidth(packetInfo: Map<Any, Int>): Int = when (this) {
@@ -203,11 +319,39 @@ fun buildPacket(event: PacketEvent, body: ByteArray): Packet = when (event) {
         val message = messageBytes.decodeToString()
         MessageNotification(timestamp, username, message)
     }
-    FileUploadEvent -> TODO()
-    FileUploadAcceptedEvent -> TODO()
-    FileUploadedEvent -> TODO()
-    FileNotificationEvent -> TODO()
-    FileUploadRejectedEvent -> TODO()
+    FileUploadEvent -> {
+        val fileId = body.sliceArray(event.getRangeOf(FileId)).toIntWithoutSign()
+        val fileSizeInfo = body.sliceArray(event.getRangeOf(FileSizeInfo)).toIntWithoutSign()
+        val fileExtensionLength = body.sliceArray(event.getRangeOf(FileExtensionLength)).toIntWithoutSign()
+        val fileExtensionBytes = body.sliceArray(event.bodyConstsWidth until event.bodyConstsWidth + fileExtensionLength)
+        val fileExtension = fileExtensionBytes.decodeToString()
+        FileUpload(fileId, fileSizeInfo, fileExtension)
+    }
+    FileUploadAcceptedEvent -> {
+        val fileId = body.sliceArray(event.getRangeOf(FileId)).toIntWithoutSign()
+        val socketPort = body.sliceArray(event.getRangeOf(SocketPort)).toIntWithoutSign()
+        FileUploadAccepted(fileId, socketPort)
+    }
+    FileUploadedEvent -> FileUploaded(body)
+    FileNotificationEvent -> {
+        val timestampSeconds = body.sliceArray(event.getRangeOf(Timestamp)).toLongWithoutSign()
+        val timestampInstant = Instant.ofEpochSecond(timestampSeconds)
+        val timestamp = OffsetDateTime.ofInstant(timestampInstant, ZoneId.systemDefault())
+        val fileSizeInfo = body.sliceArray(event.getRangeOf(FileSizeInfo)).toIntWithoutSign()
+        val usernameLength = body.sliceArray(event.getRangeOf(UsernameLength)).toIntWithoutSign()
+        val usernameStart = event.bodyConstsWidth
+        val usernameBytes = body.sliceArray(usernameStart until usernameStart + usernameLength)
+        val username = usernameBytes.decodeToString()
+        val filenameLength = body.sliceArray(event.getRangeOf(FilenameLength)).toIntWithoutSign()
+        val filenameStart = usernameStart + usernameLength
+        val filenameBytes = body.sliceArray(filenameStart until filenameStart + filenameLength)
+        val filename = filenameBytes.decodeToString()
+        FileNotification(timestamp, fileSizeInfo, username, filename)
+    }
+    FileUploadRejectedEvent -> {
+        val fileId = body.sliceArray(event.getRangeOf(FileId)).toIntWithoutSign()
+        FileUploadRejected(fileId)
+    }
     FileDownloadEvent -> TODO()
     FileDownloadAcceptedEvent -> TODO()
     FileDownloadedEvent -> TODO()
