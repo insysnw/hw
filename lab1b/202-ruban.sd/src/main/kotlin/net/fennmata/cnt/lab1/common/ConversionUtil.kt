@@ -2,15 +2,15 @@ package net.fennmata.cnt.lab1.common
 
 import java.nio.ByteBuffer
 
-fun List<Byte>.toNumberWithoutSign(): Long {
-    return map { it.toLong() and 0xFF }.fold(0L) { accumulator, next -> (accumulator shl 8) or next }
+fun List<Byte>.toUnsignedNumber(): Long {
+    return map { it.toLong() and 0xFF }.fold(0L) { acc, next -> (acc shl 8) or next }
 }
 
-fun List<Byte>.toLongWithoutSign(): Long = toNumberWithoutSign()
-fun List<Byte>.toIntWithoutSign(): Int = toNumberWithoutSign().toInt()
+fun List<Byte>.toUnsignedLong(): Long = toUnsignedNumber()
+fun List<Byte>.toUnsignedInt(): Int = toUnsignedNumber().toInt()
 
-fun ByteArray.toLongWithoutSign(): Long = toList().toLongWithoutSign()
-fun ByteArray.toIntWithoutSign(): Int = toList().toIntWithoutSign()
+fun ByteArray.toUnsignedLong(): Long = toList().toUnsignedLong()
+fun ByteArray.toUnsignedInt(): Int = toList().toUnsignedInt()
 
 fun Long.toByteArray(capacity: Int): ByteArray {
     return ByteBuffer.allocate(8)
