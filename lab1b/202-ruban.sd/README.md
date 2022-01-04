@@ -101,7 +101,7 @@ These packets have the event field equal to 7.
 
 The packet body (in that order):
 * `fileId` (number, 2 bytes)
-* `fileSize` (number, 3 bytes)
+* `fileSizeInfo` (number, 3 bytes)
 * `fileExtensionLength` (number, 1 byte)
 * `fileExtension` (string, `fileExtensionLength` bytes, up to 256 bytes)
 
