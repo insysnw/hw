@@ -81,6 +81,8 @@ class PacketBufferTests {
     @MethodSource("fileNotificationTestSource")
     fun fileNotificationTest(packet: FileNotification) = checkCorrectness(packet)
 
+    // TODO test if PacketBuffer works correctly with a packet arriving in separate segments
+
     companion object {
 
         @JvmStatic
