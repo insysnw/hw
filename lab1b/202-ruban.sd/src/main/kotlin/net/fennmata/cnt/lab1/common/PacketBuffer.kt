@@ -2,7 +2,7 @@ package net.fennmata.cnt.lab1.common
 
 import java.nio.ByteBuffer
 
-class PacketBuffer(vararg outerParameters: Pair<Any, Int>) {
+class PacketBuffer {
 
     enum class State { AT_HEADER, AT_BODY_CONSTS, AT_BODY_VARS, PACKET_COMPLETE, PACKET_INCORRECT }
 
@@ -43,23 +43,22 @@ class PacketBuffer(vararg outerParameters: Pair<Any, Int>) {
     private fun checkStateAtHeader() {
         when (headerBuffer.remaining()) {
             1 -> {
-                val protocolVersion = headerBuffer.get(0).toInt()
-                if (protocolVersion != 1) state = State.PACKET_INCORRECT
+                val protocolVersion = headerBuffer.get(0)
+                if (protocolVersion != 1.toByte()) state = State.PACKET_INCORRECT
             }
             0 -> {
-                val supposedEvent = getPacketEventByNumber(headerBuffer.get(1).toInt())
+                val supposedEvent = headerBuffer.get(1).toPacketEvent()
                 if (supposedEvent == null) {
                     state = State.PACKET_INCORRECT
                     return
                 }
                 event = supposedEvent
-                bodyConstsBuffer = ByteBuffer.allocate(event.bodyConstsWidth)
-                bodyVarsWidth += event.getAdditionalBodyVarsWidth(info)
-                if (event.bodyConstsWidth != 0) {
+                bodyConstsBuffer = ByteBuffer.allocate(event.constantBodyPartWidth)
+                if (event.constantBodyPartWidth != 0) {
                     state = State.AT_BODY_CONSTS
                 } else {
-                    bodyVarsBuffer = ByteBuffer.allocate(bodyVarsWidth)
-                    state = if (bodyVarsWidth != 0) State.AT_BODY_VARS else State.PACKET_COMPLETE
+                    bodyVarsBuffer = ByteBuffer.allocate(0)
+                    state = State.PACKET_COMPLETE
                 }
             }
         }
@@ -67,13 +66,9 @@ class PacketBuffer(vararg outerParameters: Pair<Any, Int>) {
 
     private fun checkStateAtBodyConsts() {
         if (bodyConstsBuffer.remaining() == 0) {
-            val widthStorageFields = event.fields.filterIsInstance<WidthStorageField>()
-            for (field in widthStorageFields) {
-                val range = event.getRangeOf(field)
-                bodyVarsWidth += bodyConsts.sliceArray(range).toIntWithoutSign()
-            }
-            bodyVarsBuffer = ByteBuffer.allocate(bodyVarsWidth)
-            state = if (bodyVarsWidth != 0) State.AT_BODY_VARS else State.PACKET_COMPLETE
+            val variableBodyPartWidth = event.calculateVariableBodyPartWidth(bodyConstsBuffer.array())
+            bodyVarsBuffer = ByteBuffer.allocate(variableBodyPartWidth)
+            state = if (variableBodyPartWidth != 0) State.AT_BODY_VARS else State.PACKET_COMPLETE
         }
     }
 
@@ -85,7 +80,7 @@ class PacketBuffer(vararg outerParameters: Pair<Any, Int>) {
         check(state == State.PACKET_COMPLETE) {
             "a packet buffer can't return a packet without completing it first"
         }
-        return buildPacket(event, bodyConsts + bodyVars)
+        return event.compilePacket(bodyConstsBuffer.array(), bodyVarsBuffer.array())
     }
 
     val leftoverBytes: ByteArray get() {
@@ -95,20 +90,13 @@ class PacketBuffer(vararg outerParameters: Pair<Any, Int>) {
         return bufferOverflow
     }
 
-    private val info = outerParameters.toMap()
-
-    private val headerBuffer = ByteBuffer.allocate(2)
-
+    private val headerBuffer: ByteBuffer = ByteBuffer.allocate(2)
     private lateinit var bodyConstsBuffer: ByteBuffer
-    private val bodyConsts by lazy { bodyConstsBuffer.array() }
-
     private lateinit var bodyVarsBuffer: ByteBuffer
-    private val bodyVars by lazy { bodyVarsBuffer.array() }
-
-    private lateinit var event: PacketEvent
-    private var bodyVarsWidth = 0
 
     private var bufferOverflow: ByteArray = byteArrayOf()
+
+    private lateinit var event: PacketEvent
 
     private companion object {
         private val finishStates = setOf(State.PACKET_COMPLETE, State.PACKET_INCORRECT)
