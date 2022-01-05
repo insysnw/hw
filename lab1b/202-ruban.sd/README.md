@@ -113,7 +113,7 @@ These packets have the event field equal to 8.
 
 The packet body (in that order):
 * `socketPort` (number, 2 bytes)
-* `expirationTime` (timestamp)
+* `expiryTime` (timestamp)
 
 These packets are sent from the server to clients.
 
