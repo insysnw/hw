@@ -5,96 +5,104 @@ import concurrent.futures
 
 from datetime import timezone, datetime
 
+PORT = 7575
+ENCODING = 'utf-8'
+
 '''
-Protocol:
+TCP_Protocol:
     Time(5 + 6 + 6 = 17) | Length_name(6) | Flag_file(1) | Name() | Message()
 '''
 
 class TCP_chat_async_server():
 
-    def __init__(self):
-        self.FILE_SPLIT = '?/:'
+    def __init__(self, PORT, ENCODING):
 
-        self.CLIENTS = {'TCP-server':'-'}
+        self.NAME = 'TCP-server'
+        self.CLIENTS = {self.NAME:'-'}
+       
+        self.PORT = PORT
+        self.ENCODING = ENCODING
         self.main()
 
-    async def bitToInt(self, data):
-        result = 0
-        for i in range(0, len(data)):
-            result = result * 2 + int(data[i])
-        return result
+    async def message2Bit(self, message, lenght):
+        return format(message, 'b').zfill(lenght)
 
-    async def byte_decode(self, data_bin):
-        res_str = ''
-        for i in range(0, len(data_bin), 8):
-            res_str += int(data_bin[i:(i + 8)], 2).to_bytes(1, byteorder = 'big').decode('utf-8') 
-        return res_str
-
-    async def bit_zfill(self, mess, length):
-        return format(mess, 'b').zfill(length)
-
-    async def send_answer(self, connect, message):
-        loop = asyncio.get_event_loop()
+    async def makeNewTime(self):
         time = datetime.now(timezone.utc).time()
-        name_encode = 'TCP-server'.encode('utf-8')
-        message_encode = message.encode('utf-8')
-        message_bit  = await self.bit_zfill(time.hour, 5) + await self.bit_zfill(time.minute, 6) + await self.bit_zfill(time.second, 6)
-        message_bit += (await self.bit_zfill(len(name_encode), 6) + format(False, '1b'))
-        message_send = b''
-        for i in range(0, 24, 8):
-            message_send += int(message_bit[i:(i + 8)], 2).to_bytes(1, byteorder = 'big')
-        message_send += (name_encode + message_encode)
-        try:
-            connect.write(message_send)
-            await connect.drain()
-        except ConnectionError as e:
-            pass
-        return
+        newData = await self.message2Bit(time.hour, 5) + await self.message2Bit(time.minute, 6) + await self.message2Bit(time.second, 6)
+        return newData
 
-    async def makeNewData(self, data, message):
-        name_encode = 'TCP-server'.encode('utf-8')
-        message_encode = message.encode('utf-8')
-        message_bit = data[:17] + await self.bit_zfill(len(name_encode), 6) + format(False, '1b')
-        dataNew = b''
-        for i in range(0, 24, 8):
-            dataNew += int(message_bit[i:(i + 8)], 2).to_bytes(1, byteorder = 'big')
-        dataNew += (name_encode + message_encode)
+    async def makeNewDataWithoutTime(self, dataTime, name, message):
+        messageBit = dataTime + await self.message2Bit(len(name), 6) + format(False, '1b')
+        dataNew = int(messageBit, 2).to_bytes(3, byteorder = 'big') + name.encode(self.ENCODING) + message.encode(self.ENCODING)
         return dataNew
 
-    async def stream_parser(self, data, connect):
-        data_hex = data.hex()
-        data_bin = (bin(int(data_hex[0], 16))[2:]).zfill(4)
-        for i in range(1, len(data_hex)):
-            data_bin += (bin(int(data_hex[i], 16))[2:]).zfill(4)
-        length_name = await self.bitToInt(data_bin[17:23]) * 8
-        name = await self.byte_decode(data_bin[24:(24 + length_name)])    
-        # print(connect.getsockname())
+    async def clientErrorDelete(self, name, dataTime, clientError):
+        dataNew = await self.makeNewDataWithoutTime(dataTime, name, '-q')
+        await self.stream_parser(dataNew, self.CLIENTS[name], clientError)
+        return
+
+    async def sendMessage(self, connect, name, message):
+        try:
+            connect.write(message)
+            await connect.drain()
+        except ConnectionError as e:
+            print(f'\n\t Warning! Lost connection with <{name}>!')
+            return 1
+        return 0
+
+    async def stream_parser(self, data, connect, nameError = []):
+        length_name = ((int.from_bytes(data[2:3], byteorder = 'big') % 128) >> 1) + 3
+        name = data[3:length_name].decode(self.ENCODING)
+        message = data[length_name:].decode(self.ENCODING)
         if name in self.CLIENTS.keys() and self.CLIENTS[name] != connect:
-            await self.send_answer(connect, 'ERROR-Name')
-            return
+            dataNew = await self.makeNewDataWithoutTime(await self.makeNewTime(), self.NAME, 'ERROR-Name')
+            await self.sendMessage(connect, name, dataNew)
+            return True
+        dataTime = bin(int.from_bytes(data[:3], byteorder = 'big') >> 7)[2:]
         dataNew = data
         if name not in self.CLIENTS.keys():
             self.CLIENTS.setdefault(name, connect)
-            dataNew = await self.makeNewData(data_bin, f'\t <{name}> joined the chat!')
+            dataNew = await self.makeNewDataWithoutTime(dataTime, self.NAME, f'<{name}> joined the chat!')
+        flagWork = True
         if message.lower() in ['-q', 'quit', 'exit']:
+            flagWork = False
+            if name in nameError:
+                dataNew = await self.makeNewDataWithoutTime(dataTime, self.NAME, f'Lost connection with <{name}>!')
+            else:
+                dataNew = await self.makeNewDataWithoutTime(dataTime, self.NAME, f'<{name}> exited from the chat!')
+                await self.sendMessage(self.CLIENTS[name], name, dataNew)
             self.CLIENTS.pop(name)
-            dataNew = await self.makeNewData(data_bin, f'\t <{name}> exited from the chat!')
-        # print(dataNew)
-        for client in self.CLIENTS:
-            if client != 'TCP-server':
-                self.CLIENTS[client].write(dataNew)
-                await self.CLIENTS[client].drain()
-        return
+        clientError = []
+        for client in self.CLIENTS.keys():
+            if client != 'TCP-server' and client not in nameError:
+                if await self.sendMessage(self.CLIENTS[client], client, dataNew):
+                    clientError.append(client)
+        for name in clientError:
+            await self.clientErrorDelete(name, dataTime, clientError)
+        return flagWork
 
     async def handle_client(self, reader, writer):
-        loop = asyncio.get_event_loop()
-        data_full = await reader.read(255)
-        await self.stream_parser(data_full, writer)
+        flagWork = True
+        while flagWork:
+            data_full = b''
+            while True:
+                try:
+                    data = await reader.read(255)
+                    data_full += data
+                    if len(data) < 255:
+                        break
+                except ConnectionError as e:
+                        flagWork = False
+                        print(f'\n\t Warning! Lost connection...!')
+                        break
+            if len(data_full) > 0:
+                flagWork = await self.stream_parser(data_full, writer)
         return
 
     async def run_server(self):
-        print('\n\t TCP server ready!\n')
-        server = await asyncio.start_server(self.handle_client, '', 7575, family = socket.AF_INET)
+        print('\n\t TCP server (async) ready!\n')
+        server = await asyncio.start_server(self.handle_client, '', self.PORT, family = socket.AF_INET)
         async with server:
             await server.serve_forever()
 
@@ -104,4 +112,4 @@ class TCP_chat_async_server():
         return 0
 
 if __name__ == '__main__':
-    TCP_chat_async_server()
+    TCP_chat_async_server(PORT, ENCODING)

@@ -4,191 +4,177 @@ import random
 import threading
 
 from re import sub
+from time import sleep
 from datetime import timezone, datetime
 
+PORT = 7575
+ENCODING = 'utf-8'
+
 '''
-Protocol:
+TCP_Protocol:
     Time(5 + 6 + 6 = 17) | Length_name(6) | Flag_file(1) | Name() | Message()
 '''
 
 class TCP_chat_client():
 
-    def __init__(self):
-        self.TIME_DIFF = int(datetime.now(timezone.utc).astimezone().utcoffset().total_seconds() / 3600)
+    def __init__(self, PORT, ENCODING):
+        self.TIME_HOUR_DIFF = int(datetime.now(timezone.utc).astimezone().utcoffset().total_seconds() / 3600)
 
         self.FILE_PATH_FROM = '../../TCP_client_from'
         self.FILE_PATH_TO   = '../../TCP_client_to'
         self.FILE_SPLIT = '?/:'
 
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.IP_ADDR = f'127.0.0.{random.randint(5, 255)}' 
-        self.SOCKET.connect((self.IP_ADDR, 7575))
+        self.IP_ADDR = f'127.0.0.{random.randint(5, 254)}' 
+        self.SOCKET.connect((self.IP_ADDR, PORT))
         self.BREAK_FLAG = False
+
+        self.NAME = ''
+        self.NAME_ENCODE = b''
+        self.NAME_CHECK = False
+
+        self.ENCODING = ENCODING
         self.main()
 
     def UTC2LocalTime(self, hour):
-        hourLocalTime = hour + self.TIME_DIFF
+        hourLocalTime = hour + self.TIME_HOUR_DIFF
         if hourLocalTime > 23:
             hourLocalTime -= 24
         if hourLocalTime < 0:
             hourLocalTime += 24 
         return hourLocalTime
 
-    def bitToInt(self, data):
-        result = 0
-        for i in range(0, len(data)):
-            result = result * 2 + int(data[i])
-        return result
-
-    def byte_decode(self, data_bin):
-        res_str = ''
-        for i in range(0, len(data_bin), 8):
-            res_str += int(data_bin[i:(i + 8)], 2).to_bytes(1, byteorder = 'big').decode('utf-8') 
-        return res_str
-
-    def bit_zfill(self, mess, length):
-        return format(mess, 'b').zfill(length)
-
-    def gen_message(self, flag_file, name_encode, message_encode = b''):
-        time = datetime.now(timezone.utc).time()
-        message_bit  = self.bit_zfill(time.hour, 5) + self.bit_zfill(time.minute, 6) + self.bit_zfill(time.second, 6)
-        message_bit += (self.bit_zfill(len(name_encode), 6) + format(flag_file, '1b'))
-        message_send = b''
-        for i in range(0, 24, 8):
-            message_send += int(message_bit[i:(i + 8)], 2).to_bytes(1, byteorder = 'big')
-        message_send += (name_encode + message_encode)
-        return message_send
-
-    def input_name(self, message = ''):
-        name = ''
-        while name == '':
-            name = input('\n\t Please, inter your ' + message +  'name: > ')
-            name = sub(r'\s|\t|,|\.|\"', '_', name)
-            if name == '':
-                print('ERROR! Invalid name!')
-            name_encode = name.encode('utf-8')
-            if len(name_encode) > 63:
-                name == ''
-                print('ERROR! The name is too long!')
-        print(f'\n Your name is <{name}>\n')
-        return name_encode
-
-    def get_answer(self, name_encode):
-        data = self.SOCKET.recv(24)
-        data_hex = data.hex()
-        data_bin = (bin(int(data_hex[0], 16))[2:]).zfill(4)
-        for i in range(1, len(data_hex)):
-            data_bin += (bin(int(data_hex[i], 16))[2:]).zfill(4)
-        length_name = self.bitToInt(data_bin[17:23]) * 8
-        name_end = 24 + length_name
-        name = self.byte_decode(data_bin[24:name_end])    
-        message = self.byte_decode(data_bin[name_end:])
-        if name == 'TCP-server' and message == 'ERROR-Name':
-            print('\n\t ERROR! This name is already taken, please choose another name')
-            return self.input_name('new ')
-        return name_encode
-
-    def send_file(self, file_name):
-        file_path = self.FILE_PATH_FROM + '/' + file_name
-        file_name_encode = (file_name + self.FILE_SPLIT).encode('utf-8')
+    def sendFile(self, file_name):
+        filePath = self.FILE_PATH_FROM + '/' + file_name
         try:
-            with open(file_path, 'rb') as file:
-                data = file.read()
+            file = open(filePath, 'rb')
+            data = file.read()
         except FileNotFoundError:
-            print(f'\n\t ERROR! Requested file "{file_path}" not found!')
+            print(f'\n   ERROR! Requested file "{filePath}" not found!')
             return None
-        return (file_name_encode + data)
+        return ((file_name + self.FILE_SPLIT).encode(self.ENCODING) + data)
 
-    def check_name(self):
-        name_encode = self.input_name()
-        message_send = self.gen_message(False, name_encode)
-        try:
-            self.SOCKET.sendall(message_send)
-            name_encode = self.get_answer(name_encode)
-        except ConnectionError as e:
-            return -1
-        return name_encode
-
-    def thread_send_message(self, sock, name_encode):
-        while not self.BREAK_FLAG:
-            flag_file = False
-            message = input('\t > ')
-            if message == '':
-                print(' ERROR! Empty message!')
-                continue
-            flag_check = message.split(' ', 1)
-            if message.lower() in ['-q', '--quit', 'exit']:
-                self.BREAK_FLAG = True
-            message_encode = message.encode('utf-8')
-            if flag_check[0].lower() in ['-f', '--file']:
-                flag_file = True
-                message_encode = self.send_file(flag_check[1])
-                if message_encode is None:
-                    continue 
-            message_send = self.gen_message(flag_file, name_encode, message_encode)
-            # print(message_send)
-            try: sock.sendall(message_send)
-            except ConnectionError as e: break
-        return
-
-    def make_file(self, message):
+    def makeFile(self, message):
         message_split = message.split(self.FILE_SPLIT, 1)
-        file_path = self.FILE_PATH_TO + '/' + message_split[0]
-        with open(file_path, 'w+') as file:
+        with open(self.FILE_PATH_TO + '/' + message_split[0], 'w') as file:
             file.writelines(message_split[1].split('\r'))
         return message_split[0]
 
-    def print_result(self, time, name, message, flag_file):
+    def printResult(self, time, name, message, flag_file):
         messageNew = message
-        if flag_file: messageNew = '(file) ' + self.make_file(message)
-        namePrint = f'<{name}>' + ':'
-        if name == 'TCP-server': namePrint = ''
-        print('\n\t\t\t[%2d:%2d:%2d] %s %s' %(time[0], time[1], time[2], namePrint, messageNew))
-        print('\t > ')
+        if flag_file:
+            messageNew = '(file) ' + self.makeFile(message)
+        if name == 'TCP-server':
+            namePrint = ''
+        elif name == self.NAME:
+            namePrint = ' <You>:'
+        else:
+            namePrint = f' <{name}>:'
+        print('\n\t\t\t[%2d:%2d:%2d]%s %s\n\t > ' %(time[0], time[1], time[2], namePrint, messageNew))
+        return
+
+    def message2Bit(self, message, lenght):
+        return format(message, 'b').zfill(lenght)
+
+    def makeMessage(self, flagFile, messageEncode = b''):
+        time = datetime.now(timezone.utc).time()
+        message_bit  = self.message2Bit(time.hour, 5) + self.message2Bit(time.minute, 6) + self.message2Bit(time.second, 6)
+        message_bit += (self.message2Bit(len(self.NAME_ENCODE), 6) + format(flagFile, '1b'))
+        message_send = int(message_bit, 2).to_bytes(3, byteorder = 'big') + self.NAME_ENCODE + messageEncode
+        return message_send
+
+    def inputName(self, message = ''):
+        self.NAME = ''
+        while self.NAME == '':
+            self.NAME = input('\n\t Please, inter your ' + message + 'name: > ')
+            self.NAME = sub(r'\s|\t|,|\.|\"', '_', self.NAME)
+            if self.NAME == '':
+                print('ERROR! Invalid name!')
+            self.NAME_ENCODE = self.NAME.encode(self.ENCODING)
+            if len(self.NAME_ENCODE) > 63:
+                self.NAME == ''
+                print('ERROR! The name is too long!')
+        print(f'\n   Your name is <{self.NAME}>\n')
+        try:
+            self.SOCKET.sendall(self.makeMessage(False))
+        except ConnectionError as e:
+            print('\n   Error! Connection loss...')
+            self.BREAK_FLAG = True
+        return
+
+    def thread_send_message(self):
+        print('\n   Your name has been verified, you can type messages...\n')
+        while not self.BREAK_FLAG:
+            flagFile = False
+            message = input('\t > ')
+            if message == '':
+                print('\n   ERROR! Empty message!')
+                continue
+            if message.lower() in ['-q', '--quit', 'exit']:
+                self.BREAK_FLAG = True
+            flagCheck = message.split(' ', 1)
+            messageEncode = message.encode(self.ENCODING)
+            if flagCheck[0].lower() in ['-f', '--file']:
+                flagFile = True
+                messageEncode = self.sendFile(flagCheck[1])
+                if messageEncode is None:
+                    continue 
+            try:
+                self.SOCKET.sendall(self.makeMessage(flagFile, messageEncode))
+            except ConnectionError as e:
+                self.BREAK_FLAG = True
+                break
         return
 
     def stream_parser(self, data):
-        data_hex = data.hex()
-        data_bin = (bin(int(data_hex[0], 16))[2:]).zfill(4)
-        for i in range(1, len(data_hex)):
-            data_bin += (bin(int(data_hex[i], 16))[2:]).zfill(4)
-        time = (self.UTC2LocalTime(self.bitToInt(data_bin[:5])), self.bitToInt(data_bin[5:11]), self.bitToInt(data_bin[11:17]))
-        length_name = self.bitToInt(data_bin[17:23]) * 8
-        flag_file = self.bitToInt(data_bin[23:24])
-        name_end = 24 + length_name
-        name = self.byte_decode(data_bin[24:name_end])    
-        message = self.byte_decode(data_bin[name_end:])
-        self.print_result(time, name, message, flag_file)
+        dataTime = bin(int.from_bytes(data[:3], byteorder = 'big') >> 7)[2:]
+        time = (self.UTC2LocalTime(int(dataTime[:5], 2)), int(dataTime[5:11], 2), int(dataTime[11:], 2))
+        length_name = ((int.from_bytes(data[2:3], byteorder = 'big') % 128) >> 1) + 3
+        flag_file = int.from_bytes(data[2:3], byteorder = 'big') % 2
+        name = data[3:length_name].decode(self.ENCODING)
+        message = data[length_name:].decode(self.ENCODING)
+        if not self.NAME_CHECK and name == 'TCP-server' and message == 'ERROR-Name':
+            print('\n   ERROR! This name is already taken, please choose another name')
+            self.inputName('new ')
+            return 
+        else:
+            self.NAME_CHECK = True
+            self.printResult(time, name, message, flag_file)
         return
 
-    def thread_recv_message(self, sock):
+    def thread_get_message(self):
         while not self.BREAK_FLAG:
             data_full = b''
             while True:
                 try:
-                    data = sock.recv(255)
-                    if data: data_full += data
-                    else: break
-                except socket.timeout: break
-            if len(data_full) > 0: self.stream_parser(data_full)
+                    data = self.SOCKET.recv(255)
+                    data_full += data
+                    if len(data) < 255:
+                        break
+                except ConnectionError as e:
+                    print(f'\n   Warning! Lost connection...!')
+                    self.BREAK_FLAG = True
+                    self.NAME_CHECK = True
+                    break
+            if len(data_full) > 0:
+                self.stream_parser(data_full)
         return
 
     def main(self):
-        name_encode = self.check_name()
-        if name_encode == -1:
-            print('\n\t Error! Connection loss...')
-            return
-        print('\tYour name has been verified, you can type messages...\n')
 
-        thread_send = threading.Thread(target = self.thread_send_message, args = (self.SOCKET, name_encode))
-        thread_recv = threading.Thread(target = self.thread_recv_message, args = (self.SOCKET,))
-        thread_send.start()
-        thread_recv.start()
-        thread_send.join()
-        thread_recv.join()
+        threadGet = threading.Thread(target = self.thread_get_message)
+        threadGet.start()
+
+        self.inputName()
+        while not self.NAME_CHECK:
+            sleep(1)
+
+        self.thread_send_message()
+        
+        threadGet.join()
 
         self.SOCKET.close()
         return 0
 
 if __name__ == '__main__':
-   TCP_chat_client()
+   TCP_chat_client(PORT, ENCODING)
