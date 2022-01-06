@@ -164,6 +164,7 @@ class TFTP_client_class():
         try:
             file = open(filename, symbol)
             dataBytes = file.read()
+            file.close()
         except FileNotFoundError:
             return f'\n   Error! File <{filename}> does not exist!'
         if mode == 'netascii':

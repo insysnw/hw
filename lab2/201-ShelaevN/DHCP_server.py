@@ -152,7 +152,7 @@ class DHCP_server():
 
         if structOptions['op'] == 'DHCPDISCOVER' and structOptions['chaddr'] in self.DynamicIPDict.values():
                 self.MAC_Check(structOptions['chaddr'])
-        if structOptions['op'] == 'DHCPREQUEST' and structOptions['yiaddr'] != self.IP_ADDRESS:
+        if structOptions['op'] == 'DHCPREQUEST'  and structOptions['yiaddr'] != self.IP_ADDRESS:
             self.IP_ADDRESS = self.ERROR_IP_ADDRESS
 
         return structOptions
