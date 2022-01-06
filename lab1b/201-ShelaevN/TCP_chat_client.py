@@ -49,6 +49,7 @@ class TCP_chat_client():
         try:
             file = open(filePath, 'rb')
             data = file.read()
+            file.close()
         except FileNotFoundError:
             print(f'\n   ERROR! Requested file "{filePath}" not found!')
             return None
