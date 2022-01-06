@@ -39,102 +39,123 @@ from time import time
     +---------------------------------------------------------------+
 '''
 
-PacketStructDict = { 'op':'Unknown', 'htype':'Unknown', 'hlen':0, 'hops':0, 'xid':0, 'secs':0, 'flags':0, 'ciaddr':'0.0.0.0', \
-    'siaddr':'0.0.0.0', 'giaddr':'0.0.0.0', 'chaddr':'Unknown', 'sname':'-', 'file':'-', 'magic_cookie':'99.130.83.99', 'parser':0, \
-    'SubnetMask':'255.255.255.0', 'DHCPServerIP':'127.0.0.11', 'Router':'192.168.0.1', 'DNS':'192.168.0.1', 'NTPS':'192.168.0.1', \
-    'HostName':'Test', 'IPLeaseTime':60, 'RequestedIpAddress':'0.0.0.0'}
+PORT_IN  = 67
+PORT_OUT = 68
 
 class DHCP_server():
+
+    DHCPServerIP = '127.0.0.11'
+    IP_COOKIE = '99.130.83.99'
+    ERROR_IP_ADDRESS = '1.1.1.1'
+
+    PacketStructDict = { 'op':'Unknown', 'htype':'Unknown', 'hlen':0, 'hops':0, 'xid':0, 'secs':0, 'flags':0, 'ciaddr':'0.0.0.0', 'yiaddr':'0.0.0.0',
+        'siaddr':'0.0.0.0', 'giaddr':'0.0.0.0', 'chaddr':'Unknown', 'sname':'', 'file':'', 'magic_cookie':IP_COOKIE, 'SubnetMask':'255.255.255.0',
+        'DHCPServerIP':DHCPServerIP, 'Router':'192.168.0.1', 'DNS':'192.168.0.1', 'NTPS':'192.168.0.1', 'HostName':'Test', 'IPLeaseTime':60, 'parser':0 }
 
     def __init__(self, PORT_IN, PORT_OUT):
         self.DynamicIPDict = dict()
         self.DynamicIPTime = dict()
-        self.DynamicIPArray = [f'192.168.5.{x}' for x in range(35, 255)]
-        self.IPADDRESS = self.DynamicIPArray.pop(0)
+        self.DynamicIPArray = [f'192.168.5.{x}' for x in range(25, 255)]
+        self.IP_ADDRESS = self.DynamicIPArray.pop(0)
 
-        self.PORT_IN  = PORT_IN
         self.PORT_OUT = PORT_OUT
 
         self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.SOCKET.bind(('127.0.0.11', self.PORT_IN))
+        self.SOCKET.bind((self.DHCPServerIP, PORT_IN))
         self.SOCKET.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.main()
-    
-    def parserIPAddress(self, address):
-        ipAddress = [int.from_bytes(data[x], byteorder = 'big') for x in range(0, len(address))]
-        return '.'.join(ipAddress)            
+        self.main()            
 
-    def findOptions(self, data, res):
+    def findOptions(self, data, structOptions):
+        while structOptions['parser'] < len(data):
 
-        while res['parser'] < len(data):
-
-            parser = res['parser']
-            check_byte = int.from_bytes(data[parser:(parser + 1)], byteorder = 'big')
+            parser = structOptions['parser']
+            checkByte = int.from_bytes(data[parser:(parser + 1)], byteorder = 'big')
             ln = int.from_bytes(data[(parser + 1):(parser + 2)], byteorder = 'big')
 
             # Host Name
-            if check_byte == 12:
-                res['HostName'] = data[(parser + 2):(parser + ln + 3)].decode('utf-8')
+            if checkByte == 12:
+                structOptions['HostName'] = data[(parser + 2):(parser + ln + 3)].decode('ascii', 'replace')
               
             # Запрошенный IP-адрес
-            elif check_byte == 50:
-                res['RequestedIpAddress'] = socket.inet_ntoa(data[(parser + 2):(parser + 6)])
+            elif checkByte == 50:
+                structOptions['yiaddr'] = socket.inet_ntoa(data[(parser + 2):(parser + 6)])
 
             # IP Lease Time (время аренды IP-адреса)
-            elif check_byte == 51:
-                res['IPLeaseTime'] = int.from_bytes(data[(parser + 2):(parser + 6)], byteorder = 'big') 
+            elif checkByte == 51:
+                structOptions['IPLeaseTime'] = int.from_bytes(data[(parser + 2):(parser + 6)], byteorder = 'big') 
 
             # Тип запроса
-            elif check_byte == 53: 
-                op_check = int.from_bytes(data[(parser + 2):(parser + 3)], byteorder = 'big')
-                if   op_check == 1:  res['op'] = 'DHCPDISCOVER'
-                elif op_check == 2:  res['op'] = 'DHCPOFFER'
-                elif op_check == 3:  res['op'] = 'DHCPREQUEST'
-                elif op_check == 4:  res['op'] = 'DHCPDECLINE'
-                elif op_check == 5:  res['op'] = 'DHCPACK'
-                elif op_check == 6:  res['op'] = 'DHCPNAK'
-                elif op_check == 7:  res['op'] = 'DHCPRELEASE'
-                elif op_check == 8:  res['op'] = 'DHCPINFORM'
-                elif op_check == 13: res['op'] = 'LEASEQUERY'
+            elif checkByte == 53: 
+                opCheck = int.from_bytes(data[(parser + 2):(parser + 3)], byteorder = 'big')
+                if   opCheck == 1:  structOptions['op'] = 'DHCPDISCOVER'
+                elif opCheck == 2:  structOptions['op'] = 'DHCPOFFER'
+                elif opCheck == 3:  structOptions['op'] = 'DHCPREQUEST'
+                elif opCheck == 4:  structOptions['op'] = 'DHCPDECLINE'
+                elif opCheck == 5:  structOptions['op'] = 'DHCPACK'
+                elif opCheck == 6:  structOptions['op'] = 'DHCPNAK'
+                elif opCheck == 7:  structOptions['op'] = 'DHCPRELEASE'
+                elif opCheck == 8:  structOptions['op'] = 'DHCPINFORM'
+                elif opCheck == 13: structOptions['op'] = 'LEASEQUERY'
 
             # IP DHCP-сервера
-            elif check_byte == 54:       
-                res['DHCPServerIP'] = socket.inet_ntoa(data[(parser + 2):(parser + 6)])
+            elif checkByte == 54:
+                DHCPServerIP = socket.inet_ntoa(data[(parser + 2):(parser + 6)])
+                if DHCPServerIP != structOptions['DHCPServerIP']:
+                    structOptions['op'] = 'DHCPNAK'
+                    break
 
             # MAC-адрес клиента
-            elif check_byte == 61:
+            elif checkByte == 61:
                 if int.from_bytes(data[(parser + 2):(parser + 3)], byteorder = 'big') == 1:
-                    res['htype']  = 'Ethernet'      
-                    res['chaddr'] = data[(parser + 3):(parser + ln + 3)].hex()
+                    structOptions['htype']  = 'Ethernet'      
+                    structOptions['chaddr'] = data[(parser + 3):(parser + ln + 3)].hex()
             
-            res['parser'] += ln + 2
+            structOptions['parser'] += (ln + 2)
+        return structOptions
 
-        return res
+    def MAC_Check(self, MAC_IN):
+        lock = threading.Lock()
+        lock.acquire()
+        try:
+            for IP, MAC in self.DynamicIPDict.items():
+                if MAC == MAC_IN:
+                    self.DynamicIPArray.insert(0, self.IP_ADDRESS)
+                    self.IP_ADDRESS = IP
+                    break
+        finally:
+            lock.release()
+        return
 
-    def parserPacket(self, res, data):
+    def parserPacket(self, structOptions, data):
         if len(data) < 240:
-            print('\n\tError!')
-            return res
+            print('\n\tError! Small data...')
+            return structOptions
         op = int.from_bytes(data[:1], byteorder = 'big')
-        if   op == 1: res['op'] = 'DHCPDISCOVER/DHCPREQUEST'
-        elif op == 2: res['op'] = 'DHCPOFFER/DHCPACK'
-        if int.from_bytes(data[1:2], byteorder = 'big') == 1: res['htype'] = 'MAC'
-        res['hlen']   = int.from_bytes(data[2:3],   byteorder = 'big')
-        res['hops']   = int.from_bytes(data[3:4],   byteorder = 'big')
-        res['xid']    = int.from_bytes(data[4:8],   byteorder = 'big')
-        res['secs']   = int.from_bytes(data[8:10],  byteorder = 'big')
-        res['flags']  = int.from_bytes(data[10:11], byteorder = 'big') >> 7
-        res['ciaddr'] = socket.inet_ntoa(data[12:16])
-        res['yiaddr'] = socket.inet_ntoa(data[16:20])
-        res['siaddr'] = socket.inet_ntoa(data[20:24])
-        res['giaddr'] = socket.inet_ntoa(data[24:28])
-        res['chaddr'] = data[28:44].hex()
-        res['sname']  = data[44:108].decode('utf-8')
-        res['file']   = data[108:236].decode('utf-8')
-        res['magic_cookie'] = socket.inet_ntoa(data[236:240])
-        if res['magic_cookie'] == '99.130.83.99':    
-            res = self.findOptions(data[240:len(data)], res)
-        return res
+        if   op == 1: structOptions['op'] = 'DHCPDISCOVER/DHCPREQUEST'
+        elif op == 2: structOptions['op'] = 'DHCPOFFER/DHCPACK'
+        if int.from_bytes(data[1:2], byteorder = 'big') == 1:
+            structOptions['htype'] = 'MAC'
+        structOptions['hlen']   = int.from_bytes(data[2:3],   byteorder = 'big')
+        structOptions['hops']   = int.from_bytes(data[3:4],   byteorder = 'big')
+        structOptions['xid']    = int.from_bytes(data[4:8],   byteorder = 'big')
+        structOptions['secs']   = int.from_bytes(data[8:10],  byteorder = 'big')
+        structOptions['flags']  = int.from_bytes(data[10:11], byteorder = 'big') >> 7
+        structOptions['ciaddr'] = socket.inet_ntoa(data[12:16])
+        structOptions['yiaddr'] = socket.inet_ntoa(data[16:20])
+        structOptions['siaddr'] = socket.inet_ntoa(data[20:24])
+        structOptions['giaddr'] = socket.inet_ntoa(data[24:28])
+        structOptions['chaddr'] = data[28:44].hex()
+        structOptions['sname']  = data[ 44:108].decode('ascii', 'replace')
+        structOptions['file']   = data[108:236].decode('ascii', 'replace')
+        if socket.inet_ntoa(data[236:240]) == structOptions['magic_cookie']:    
+            structOptions = self.findOptions(data[240:], structOptions)
+
+        if structOptions['op'] == 'DHCPDISCOVER' and structOptions['chaddr'] in self.DynamicIPDict.values():
+                self.MAC_Check(structOptions['chaddr'])
+        if structOptions['op'] == 'DHCPREQUEST' and structOptions['yiaddr'] != self.IP_ADDRESS:
+            self.IP_ADDRESS = self.ERROR_IP_ADDRESS
+
+        return structOptions
 
     def array2bytes(self, array):
         bytes = b''
@@ -148,71 +169,80 @@ class DHCP_server():
             bytes += int(MAC[i:(i + 2)], 16).to_bytes(1, 'big')
         return bytes
 
-    def createDHCPPacket(self, rev_packet, mode = 'OFFER'):
+    def createDHCPPacket(self, structOptions, mode = 'OFFER'):
         packet = self.array2bytes([2, 1, 6, 0])
-        packet += (rev_packet['xid']).to_bytes(4, 'big') + (0).to_bytes(8, 'big')
-        packet += socket.inet_aton(self.IPADDRESS)
-        packet += socket.inet_aton(rev_packet['DHCPServerIP'])
+        packet += (structOptions['xid']).to_bytes(4, byteorder = 'big') + (0).to_bytes(8, byteorder = 'big')
+        packet += socket.inet_aton(self.IP_ADDRESS)
+        packet += socket.inet_aton(structOptions['DHCPServerIP'])
         packet += socket.inet_aton('0.0.0.0')
-        packet += self.MAC2bytes(rev_packet['chaddr'])
-        packet += (0).to_bytes(192, 'big')
-        packet += socket.inet_aton(rev_packet['magic_cookie'])
-        packet += self.array2bytes([1, 4]) + socket.inet_aton(rev_packet['SubnetMask'])
-        packet += self.array2bytes([3, 4]) + socket.inet_aton(rev_packet['Router'])
-        packet += self.array2bytes([6, 4]) + socket.inet_aton(rev_packet['DNS'])
-        packet += self.array2bytes([50, 4]) + socket.inet_aton(self.IPADDRESS)
-        packet += self.array2bytes([51, 4]) + (rev_packet['IPLeaseTime']).to_bytes(4, 'big')
-        if   mode == 'ACK':   packet += self.array2bytes([53, 1, 5])
-        elif mode == 'OFFER': packet += self.array2bytes([53, 1, 2])
+        packet += self.MAC2bytes(structOptions['chaddr'])
+        packet += (0).to_bytes(192, byteorder = 'big')
+        packet += socket.inet_aton(structOptions['magic_cookie'])
+        packet += self.array2bytes([1, 4]) + socket.inet_aton(structOptions['SubnetMask'])
+        packet += self.array2bytes([3, 4]) + socket.inet_aton(structOptions['Router'])
+        packet += self.array2bytes([6, 4]) + socket.inet_aton(structOptions['DNS'])
+        packet += self.array2bytes([50, 4]) + socket.inet_aton(self.IP_ADDRESS)
+        packet += self.array2bytes([51, 4]) + (structOptions['IPLeaseTime']).to_bytes(4, byteorder = 'big')
+
+        if   mode == 'ACK':
+            packet += self.array2bytes([53, 1, 5])
+        elif mode == 'OFFER':
+            packet += self.array2bytes([53, 1, 2])
         elif mode == 'NAK':
             print('\n\t Error! DHCPNAK...(Unvalid IP address)')
             packet += self.array2bytes([53, 1, 6])
-        packet += self.array2bytes([54, 4]) + socket.inet_aton(rev_packet['DHCPServerIP'])
+
+        packet += self.array2bytes([54, 4]) + socket.inet_aton(structOptions['DHCPServerIP'])
         packet += (255).to_bytes(1, 'big') + (0).to_bytes(1, 'big')
         return packet
 
-    def MAC2IPAddress(self, packet):
+    def MAC2IPAddress(self, structOptions):
         lock = threading.Lock()
         lock.acquire()
         try:
-            self.DynamicIPDict.setdefault(self.IPADDRESS, packet['chaddr'])
-            self.DynamicIPTime.setdefault(self.IPADDRESS, (packet['IPLeaseTime'], time()))
-            print('\n Give IP-address: %s to %s in %d' %(self.IPADDRESS, packet['chaddr'], packet['IPLeaseTime']))
+            self.DynamicIPDict.update({ self.IP_ADDRESS:structOptions['chaddr'] })
+            self.DynamicIPTime.update({ self.IP_ADDRESS:(structOptions['IPLeaseTime'], time()) })
+            print('\n Give IP-address: %s to %s in %d' %(self.IP_ADDRESS, structOptions['chaddr'], structOptions['IPLeaseTime']))
             if len(self.DynamicIPArray) == 0: 
                 current_time = time()
-                for k in self.DynamicIPTime.keys():
-                    if self.DynamicIPTime[k][0] + self.DynamicIPTime[k][1] < current_time:
-                        self.DynamicIPTime.pop(k)
-                        self.DynamicIPDict.pop(k)
-                        self.DynamicIPArray.append(k)
+                for IP in self.DynamicIPTime.keys():
+                    if (self.DynamicIPTime[IP][0] + self.DynamicIPTime[IP][1]) < current_time:
+                        self.DynamicIPTime.pop(IP)
+                        self.DynamicIPDict.pop(IP)
+                        self.DynamicIPArray.append(IP)
             if len(self.DynamicIPArray) > 0:
-                self.IPADDRESS = self.DynamicIPArray.pop(0)
-            else: self.IPADDRESS = '1.1.1.1'
+                self.IP_ADDRESS = self.DynamicIPArray.pop(0)
+            else:
+                self.IP_ADDRESS = self.ERROR_IP_ADDRESS
         finally:
             lock.release()
         return
 
-    def DHCPServer(self, data, address):
-        packet = self.parserPacket(PacketStructDict.copy(), data)
-        if packet['op'] == 'DHCPDISCOVER':
-            packetOffer = self.createDHCPPacket(packet, 'OFFER')
+    def DHCPServer(self, data):
+        structOptions = self.parserPacket(self.PacketStructDict.copy(), data)
+        if   structOptions['op'] == 'DHCPDISCOVER':
+            packetOffer = self.createDHCPPacket(structOptions, 'OFFER')
             self.SOCKET.sendto(packetOffer, ('255.255.255.255', self.PORT_OUT))
-        elif packet['op'] == 'DHCPREQUEST' or packet['op'] == 'DHCPINFORM':
+        elif structOptions['op'] == 'DHCPREQUEST' or structOptions['op'] == 'DHCPINFORM':
             mode = 'ACK'
-            if self.IPADDRESS == '1.1.1.1': mode = 'NAK'
-            packetACK = self.createDHCPPacket(packet, mode)
+            if self.IP_ADDRESS == self.ERROR_IP_ADDRESS:
+                mode = 'NAK'
+            packetACK = self.createDHCPPacket(structOptions, mode)
             self.SOCKET.sendto(packetACK, ('255.255.255.255', self.PORT_OUT))
-            if packet['op'] == 'DHCPREQUEST': self.MAC2IPAddress(packet)
-        elif packet['op'] == 'DHCPDECLINE' or packet['op'] == 'DHCPRELEASE':
+            if structOptions['op'] == 'DHCPREQUEST':
+                self.MAC2IPAddress(structOptions)
+        elif structOptions['op'] == 'DHCPDECLINE' or structOptions['op'] == 'DHCPRELEASE':
             lock = threading.Lock()
             lock.acquire()
             try:
-                self.DynamicIPTime.pop(self.IPADDRESS)
-                self.DynamicIPDict.pop(self.IPADDRESS)
-                if packet['op'] == 'DHCPRELEASE': self.DynamicIPArray.append(self.IPADDRESS)
-                else: print('\n\t Error! DHCPDECLINE...(This IP-address is already used)')
+                self.DynamicIPTime.pop(self.IP_ADDRESS)
+                self.DynamicIPDict.pop(self.IP_ADDRESS)
+                if structOptions['op'] == 'DHCPRELEASE':
+                    self.DynamicIPArray.append(self.IP_ADDRESS)
+                else:
+                    print('\n\t Error! DHCPDECLINE...(This IP-address is already used)')
             finally:
-                lock.release()       
+                lock.release()
         return 0
 
     def main(self):
@@ -220,7 +250,7 @@ class DHCP_server():
         print('\n\t DHCP Start!!!')
         while True:
             data, addr = self.SOCKET.recvfrom(512)
-            threadServer = threading.Thread(target = self.DHCPServer, args = (data, addr))
+            threadServer = threading.Thread(target = self.DHCPServer, args = (data,))
             thread_array.append(threadServer)
             threadServer.start()
         for thread in thread_array:
@@ -230,4 +260,4 @@ class DHCP_server():
         return 0
 
 if __name__ == '__main__':
-    DHCP_server(67, 68)
+    DHCP_server(PORT_IN, PORT_OUT)
