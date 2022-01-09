@@ -67,6 +67,7 @@ data class ConnectionRequest(
 
 object ConnectionAccepted : Packet {
     override val event = PacketEvent.CONNECTION_ACCEPTED
+    override fun toString() = "ConnectionAccepted"
 }
 
 data class ConnectionNotification(
@@ -81,6 +82,7 @@ data class ConnectionNotification(
 
 object ConnectionRejected : Packet {
     override val event = PacketEvent.CONNECTION_REJECTED
+    override fun toString() = "ConnectionRejected"
 }
 
 data class DisconnectionNotification(
