@@ -17,6 +17,10 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
+tasks.jar {
+    manifest.attributes["Main-Class"] = "net.fennmata.cnt.lab1.MainKt"
+}
+
 tasks.test {
     useJUnitPlatform()
     testLogging {
