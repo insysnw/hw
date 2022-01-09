@@ -15,7 +15,6 @@ import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacket
 import java.io.Closeable
 import java.io.File
-import java.lang.Exception
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.time.OffsetDateTime
@@ -94,10 +93,15 @@ object ChatClient : Runnable, Closeable {
 
     private object CommandReadThread : Thread() {
         override fun run() {
-            while (!isInterrupted) {
-                val command = readln().toCommand()
-                if (isInterrupted) continue
-                command()
+            try {
+                while (!isInterrupted) {
+                    val command = readln().toCommand()
+                    if (isInterrupted) continue
+                    command()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                close()
             }
         }
 
