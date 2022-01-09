@@ -1,13 +1,20 @@
 package net.fennmata.cnt.lab1.client
 
+import net.fennmata.cnt.lab1.common.ConnectionAccepted
+import net.fennmata.cnt.lab1.common.ConnectionNotification
+import net.fennmata.cnt.lab1.common.ConnectionRejected
+import net.fennmata.cnt.lab1.common.ConnectionRequest
+import net.fennmata.cnt.lab1.common.DisconnectionNotification
 import net.fennmata.cnt.lab1.common.NotificationOutput
+import net.fennmata.cnt.lab1.common.readPacket
 import net.fennmata.cnt.lab1.common.write
-import net.fennmata.cnt.lab1.server.ChatServer
+import net.fennmata.cnt.lab1.common.writePacket
 import java.io.Closeable
 import java.io.File
 import java.lang.Exception
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.time.OffsetDateTime
 
 object ChatClient : Runnable, Closeable {
 
@@ -18,11 +25,9 @@ object ChatClient : Runnable, Closeable {
         check(fileStorage.mkdirs()) { "Directory \"${fileStorage.absoluteFile}\" wasn't created properly" }
     }
 
-    private val username: String
-
-    init {
+    private val username: String = run {
         NotificationOutput.write("Please enter your username.")
-        username = readln()
+        readln()
     }
 
     private val socket = Socket()
@@ -35,17 +40,48 @@ object ChatClient : Runnable, Closeable {
 
         socket.connect(InetSocketAddress(address, port))
         NotificationOutput.write("TCP connection to the server @ ${socket.remoteSocketAddress} was successful.")
+
+        try {
+            socket.writePacket(ConnectionRequest(username))
+            when (socket.readPacket()) {
+                ConnectionAccepted -> {
+                    NotificationOutput.write(
+                        "You successfully connected to the chat as \"$username\".",
+                        OffsetDateTime.now()
+                    )
+                }
+                ConnectionRejected -> throw IllegalStateException("The server rejected your connection request")
+                else -> throw IllegalStateException("The server sent an illegal response")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            close()
+        }
     }
 
     override fun run() {
         try {
             // TODO command read coroutine
             while (!isClosed) {
-                // TODO socket read loop
+                when (val packet = socket.readPacket()) {
+                    is ConnectionNotification -> {
+                        NotificationOutput.write(
+                            "The user \"${packet.username}\" connected to the chat.",
+                            packet.timestamp
+                        )
+                    }
+                    is DisconnectionNotification -> {
+                        NotificationOutput.write(
+                            "The user \"${packet.username}\" disconnected from the chat.",
+                            packet.timestamp
+                        )
+                    }
+                    else -> Unit // TODO all other packets that a client should be able to receive
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ChatServer.close()
+            close()
         }
     }
 
