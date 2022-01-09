@@ -5,6 +5,7 @@ import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
+import net.fennmata.cnt.lab1.common.FileNotificationPending
 import net.fennmata.cnt.lab1.common.MessageNotification
 import net.fennmata.cnt.lab1.common.MessageOutput
 import net.fennmata.cnt.lab1.common.MessageSent
@@ -82,7 +83,10 @@ object ChatClient : Runnable, Closeable {
                     is MessageNotification -> {
                         MessageOutput.write(packet.message, packet.timestamp, packet.username)
                     }
-                    else -> Unit // TODO all other packets that a client should be able to receive
+                    is FileNotificationPending -> {
+                        TODO("implementation")
+                    }
+                    else -> Unit // ignoring all the other packets silently
                 }
             }
         } catch (e: Exception) {

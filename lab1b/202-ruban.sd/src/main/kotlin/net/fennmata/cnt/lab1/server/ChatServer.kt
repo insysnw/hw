@@ -4,6 +4,7 @@ import net.fennmata.cnt.lab1.common.ConnectionAccepted
 import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
+import net.fennmata.cnt.lab1.common.FileSent
 import net.fennmata.cnt.lab1.common.MessageNotification
 import net.fennmata.cnt.lab1.common.MessageSent
 import net.fennmata.cnt.lab1.common.NotificationOutput
@@ -165,7 +166,8 @@ object ChatServer : Runnable, Closeable {
     private fun processClientPacket(clientChannel: SocketChannel, packet: Packet) = when (packet) {
         is ConnectionRequest -> connectClient(clientChannel, packet)
         is MessageSent -> processMessage(clientChannel, packet)
-        else -> Unit // TODO all other packets that the server should be able to receive
+        is FileSent -> TODO("implementation")
+        else -> Unit // ignoring all the other packets silently
     }
 
     private fun connectClient(clientChannel: SocketChannel, connectionRequest: ConnectionRequest) {
