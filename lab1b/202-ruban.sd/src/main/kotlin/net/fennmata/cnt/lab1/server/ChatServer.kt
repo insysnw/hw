@@ -4,6 +4,8 @@ import net.fennmata.cnt.lab1.common.ConnectionAccepted
 import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
+import net.fennmata.cnt.lab1.common.MessageNotification
+import net.fennmata.cnt.lab1.common.MessageSent
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.Packet
 import net.fennmata.cnt.lab1.common.PacketBuffer
@@ -162,6 +164,7 @@ object ChatServer : Runnable, Closeable {
 
     private fun processClientPacket(clientChannel: SocketChannel, packet: Packet) = when (packet) {
         is ConnectionRequest -> connectClient(clientChannel, packet)
+        is MessageSent -> processMessage(clientChannel, packet)
         else -> Unit // TODO all other packets that the server should be able to receive
     }
 
@@ -179,9 +182,29 @@ object ChatServer : Runnable, Closeable {
         clients[clientChannel] = username
     }
 
+    private fun processMessage(clientChannel: SocketChannel, messageSent: MessageSent) {
+        val timestamp = OffsetDateTime.now()
+        val username = clients[clientChannel]
+        if (username == null) {
+            NotificationOutput.write(
+                "An unnamed client @ ${clientChannel.socket().remoteSocketAddress} sent a message. It will be ignored."
+            )
+            return
+        }
+        val message = messageSent.message
+        NotificationOutput.write("\"$username\" @ ${clientChannel.socket().remoteSocketAddress} sent a message \"$message\".")
+        val messageNotification = MessageNotification(timestamp, username, message)
+        clients.forEach { (clientToNotifyChannel, clientToNotifyUsername) ->
+            if (clientToNotifyUsername == null) return@forEach
+            clientToNotifyChannel.writePacket(messageNotification)
+        }
+        NotificationOutput.write("The incoming message notification was sent to all named clients.")
+    }
+
     private var isClosed = false
 
     override fun close() {
+        if (isClosed) return
         isClosed = true
         if (serverSelector.isOpen) {
             serverSelector.keys().forEach {

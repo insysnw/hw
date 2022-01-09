@@ -5,7 +5,11 @@ import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
+import net.fennmata.cnt.lab1.common.MessageNotification
+import net.fennmata.cnt.lab1.common.MessageOutput
+import net.fennmata.cnt.lab1.common.MessageSent
 import net.fennmata.cnt.lab1.common.NotificationOutput
+import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.readPacket
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacket
@@ -61,7 +65,7 @@ object ChatClient : Runnable, Closeable {
 
     override fun run() {
         try {
-            // TODO command read coroutine
+            CommandReadThread.start()
             while (!isClosed) {
                 when (val packet = socket.readPacket()) {
                     is ConnectionNotification -> {
@@ -76,6 +80,9 @@ object ChatClient : Runnable, Closeable {
                             packet.timestamp
                         )
                     }
+                    is MessageNotification -> {
+                        MessageOutput.write(packet.message, packet.timestamp, packet.username)
+                    }
                     else -> Unit // TODO all other packets that a client should be able to receive
                 }
             }
@@ -85,12 +92,46 @@ object ChatClient : Runnable, Closeable {
         }
     }
 
+    private object CommandReadThread : Thread() {
+        override fun run() {
+            while (!isInterrupted) {
+                val command = readln().toCommand()
+                if (isInterrupted) continue
+                command()
+            }
+        }
+
+        private sealed interface Command {
+            operator fun invoke()
+        }
+        private class MessageCommand(private val message: String) : Command {
+            override fun invoke() {
+                socket.writePacket(MessageSent(message))
+            }
+        }
+        private class FileCommand(private val filename: String) : Command {
+            override fun invoke() {
+                TODO("implementation")
+            }
+        }
+
+        private fun String.toCommand(): Command {
+            return if (startsWith("/file")) {
+                FileCommand(substringAfter("/file").trim())
+            } else {
+                MessageCommand(this)
+            }
+        }
+    }
+
     private var isClosed = false
 
     override fun close() {
+        if (isClosed) return
         isClosed = true
         socket.close()
-        // TODO command read coroutine
+        CommandReadThread.interrupt()
+        WarningOutput.write("The client has finished working. Press Enter if necessary to exit.")
     }
 
 }
