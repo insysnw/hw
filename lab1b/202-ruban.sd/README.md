@@ -136,19 +136,42 @@ These packets are sent from the server to clients.
 
 ### Client connection
 
-[TODO]
+A client should send a `ConnectionRequest` packet to the server after establishing a TCP connection. The
+client can reply with either `ConnectionAccepted` or `ConnectionRejected`. It is up to the server to
+come up with the rules of choosing between the two — possible use cases include maintaining uniqueness of
+usernames or filtering them. The simplest way of handling this is to always send a `ConnectionAccepted` packet.
+
+If the server has accepted the connection request, it must also send `ConnectionNotification` packets to other
+connected clients. No additional actions are required if the server has rejected the connection.
+
+The server is free to ignore or disconnect any client who doesn't follow this procedure. 
 
 ### Client disconnection
 
-[TODO]
+A client disconnects simply by closing its TCP connection. The server must send `DisconnectionNotification` packets to
+other connected clients if the client in question has successfully passed the connection procedure.
 
 ### Sending a message
 
-[TODO]
+A client sends a message by sending a `MessageSent` packet to the server. The server then sends `MessageNotification`
+packets to all connected clients (including the sender) based on the received `MessageSent` packet.
 
 ### Sending a file
 
-[TODO]
+A client sends a file by sending a `FileSent` packet to the server.
+
+Upon receiving a `FileSent` packet, the server chooses 1) a free port to listen to connections at and 2) the moment in
+time at which the port in question will be released. This info is sent to all connected clients (excluding the sender)
+via a `FileNotificationPending` notification.
+
+Upon receiving a `FileNotificationPending` packet, a client must establish another connection to the server on a provided
+port. However, a client should ignore the packet if its expiry time has already passed.
+
+Upon each connection to a delegated port, the server should send a `FileNotification` packet via a new connection. It is
+expected that a client will close the connection itself after receiving the packet.
+
+The server is free to stop accepting new connections on a secondary port and release it after the expiry time has been
+reached.
 
 # Even More Primitive TCP Chat
 
