@@ -152,4 +152,16 @@ These packets are sent from the server to clients.
 
 # Even More Primitive TCP Chat
 
-[TODO]
+## Build instructions
+
+1. Clone the repo to your machine.
+2. Run `gradlew shadowJar`.
+3. The jar `tcp-chat-all.jar` will be located at `build/libs`.
+
+## Usage instructions
+
+Run `java -jar tcp-chat-all.jar server` to run the server. You don't need to do anything after following
+the setup instructions. Use ^C for program exit.
+
+Run `java -jar tcp-chat-all.jar client` to run the client. Write `/file <filename>` to send a file.
+Write anything else to send a message. Use ^C for program exit.
