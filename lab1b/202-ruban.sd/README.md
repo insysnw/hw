@@ -134,6 +134,20 @@ These packets are sent from the server to clients.
 
 ## Interactions
 
+### Client connection
+
+[TODO]
+
+### Client disconnection
+
+[TODO]
+
+### Sending a message
+
+[TODO]
+
+### Sending a file
+
 [TODO]
 
 # Even More Primitive TCP Chat
