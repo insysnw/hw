@@ -1,17 +1,21 @@
-package net.fennmata.cnt.lab1.client
+package net.fennmata.cnt.lab1
 
 import net.fennmata.cnt.lab1.common.ConnectionAccepted
 import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionRejected
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
+import net.fennmata.cnt.lab1.common.FileNotification
 import net.fennmata.cnt.lab1.common.FileNotificationPending
+import net.fennmata.cnt.lab1.common.FileOutput
+import net.fennmata.cnt.lab1.common.FileSent
 import net.fennmata.cnt.lab1.common.MessageNotification
 import net.fennmata.cnt.lab1.common.MessageOutput
 import net.fennmata.cnt.lab1.common.MessageSent
 import net.fennmata.cnt.lab1.common.NotificationOutput
 import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.readPacket
+import net.fennmata.cnt.lab1.common.readable
 import net.fennmata.cnt.lab1.common.write
 import net.fennmata.cnt.lab1.common.writePacket
 import java.io.Closeable
@@ -84,7 +88,24 @@ object ChatClient : Runnable, Closeable {
                         MessageOutput.write(packet.message, packet.timestamp, packet.username)
                     }
                     is FileNotificationPending -> {
-                        TODO("implementation")
+                        if (OffsetDateTime.now() >= packet.expiryTime) {
+                            WarningOutput.write("An already expired file transmission notification was received.")
+                            continue
+                        }
+                        Socket().use { fileTransmissionSocket ->
+                            fileTransmissionSocket.connect(InetSocketAddress(socket.inetAddress, packet.socketPort))
+                            val fileNotification = fileTransmissionSocket.readPacket()
+                            if (fileNotification !is FileNotification) {
+                                WarningOutput.write("The server didn't reply properly to a file request")
+                                return@use
+                            }
+                            File(fileStorage, fileNotification.filename).writeBytes(fileNotification.file.toByteArray())
+                            FileOutput.write(
+                                "${fileNotification.filename} (${fileNotification.file.size.readable})",
+                                fileNotification.timestamp,
+                                fileNotification.username
+                            )
+                        }
                     }
                     else -> Unit // ignoring all the other packets silently
                 }
@@ -119,7 +140,15 @@ object ChatClient : Runnable, Closeable {
         }
         private class FileCommand(private val filename: String) : Command {
             override fun invoke() {
-                TODO("implementation")
+                val file = File(filename)
+                if (!file.exists()) {
+                    WarningOutput.write("File \"$filename\" does not exist!", OffsetDateTime.now())
+                    return
+                }
+                NotificationOutput.write("Sending \"$filename\" to the chat server ...", OffsetDateTime.now())
+                val fileBytes = file.readBytes().toList()
+                socket.writePacket(FileSent(filename, fileBytes))
+                NotificationOutput.write("\"$filename\" was successfully sent!", OffsetDateTime.now())
             }
         }
 

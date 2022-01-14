@@ -142,6 +142,9 @@ data class FileNotification(
     override val file: List<Byte>
 ) : PacketWithTimestamp, PacketWithUsername, PacketWithFilename, PacketWithFile {
     override val event get() = Companion.event
+    override fun toString(): String {
+        return "FileNotification(timestamp=$timestamp, username=$username, filename=$filename, fileSize=${file.size.readable})"
+    }
     companion object : CompanionWithTimestamp, CompanionWithUsername, CompanionWithFilename, CompanionWithFile {
         override val event = PacketEvent.FILE_NOTIFICATION
     }

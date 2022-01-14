@@ -1,9 +1,11 @@
-package net.fennmata.cnt.lab1.server
+package net.fennmata.cnt.lab1
 
 import net.fennmata.cnt.lab1.common.ConnectionAccepted
 import net.fennmata.cnt.lab1.common.ConnectionNotification
 import net.fennmata.cnt.lab1.common.ConnectionRequest
 import net.fennmata.cnt.lab1.common.DisconnectionNotification
+import net.fennmata.cnt.lab1.common.FileNotification
+import net.fennmata.cnt.lab1.common.FileNotificationPending
 import net.fennmata.cnt.lab1.common.FileSent
 import net.fennmata.cnt.lab1.common.MessageNotification
 import net.fennmata.cnt.lab1.common.MessageSent
@@ -14,7 +16,6 @@ import net.fennmata.cnt.lab1.common.WarningOutput
 import net.fennmata.cnt.lab1.common.toByteArray
 import net.fennmata.cnt.lab1.common.write
 import java.io.Closeable
-import java.io.File
 import java.io.IOException
 import java.lang.Exception
 import java.net.InetSocketAddress
@@ -27,13 +28,7 @@ import java.time.OffsetDateTime
 
 object ChatServer : Runnable, Closeable {
 
-    private val fileStorage = File("files")
-
-    init {
-        check(fileStorage.deleteRecursively()) { "Directory \"${fileStorage.absoluteFile}\" wasn't cleared properly" }
-        check(fileStorage.mkdirs()) { "Directory \"${fileStorage.absoluteFile}\" wasn't created properly" }
-    }
-
+    private val serverAddress: InetSocketAddress
     private val serverSelector = Selector.open()
 
     init {
@@ -41,10 +36,11 @@ object ChatServer : Runnable, Closeable {
         val address = readln()
         NotificationOutput.write("Please enter the server's TCP port.")
         val port = readln().toInt()
+        serverAddress = InetSocketAddress(address, port)
 
         val serverSocketChannel = ServerSocketChannel.open()
         serverSocketChannel.configureBlocking(false)
-        serverSocketChannel.socket().bind(InetSocketAddress(address, port))
+        serverSocketChannel.socket().bind(serverAddress)
         serverSocketChannel.register(serverSelector, SelectionKey.OP_ACCEPT)
         NotificationOutput.write("The server successfully began operation.")
     }
@@ -70,17 +66,39 @@ object ChatServer : Runnable, Closeable {
     private val clients = mutableMapOf<SocketChannel, String?>()
     private val clientPacketBuffers = mutableMapOf<SocketChannel, PacketBuffer>()
 
+    private val fileTransmissionServerSelector = Selector.open()
+    private val activeFileTransmissions = mutableMapOf<ServerSocketChannel, Pair<OffsetDateTime, FileNotification>>()
+    private val Pair<OffsetDateTime, FileNotification>.notificationTimeout get() = first
+    private val Pair<OffsetDateTime, FileNotification>.fileNotification get() = second
+
     override fun run() {
         try {
             while (!isClosed) {
-                if (serverSelector.selectNow() == 0) continue
-                val selectedKeysIterator = serverSelector.selectedKeys().iterator()
-                while (selectedKeysIterator.hasNext()) {
-                    val selectedKey = selectedKeysIterator.next()
-                    selectedKeysIterator.remove()
-                    if (!selectedKey.isValid) continue
-                    if (selectedKey.isAcceptable) acceptClient(selectedKey)
-                    if (selectedKey.isReadable) readClientPacket(selectedKey)
+                activeFileTransmissions
+                    .filter { (_, fileTransmission) -> OffsetDateTime.now() >= fileTransmission.notificationTimeout }
+                    .forEach { (fileTransmissionServerSocketChannel, _) ->
+                        fileTransmissionServerSocketChannel.close()
+                        activeFileTransmissions.remove(fileTransmissionServerSocketChannel)
+                    }
+                if (fileTransmissionServerSelector.selectNow() != 0) {
+                    val selectedKeysIterator = fileTransmissionServerSelector.selectedKeys().iterator()
+                    while (selectedKeysIterator.hasNext()) {
+                        val selectedKey = selectedKeysIterator.next()
+                        selectedKeysIterator.remove()
+                        if (!selectedKey.isValid) continue
+                        if (selectedKey.isAcceptable) acceptFileTransmissionClient(selectedKey)
+                        if (selectedKey.isReadable) disconnectFileTransmissionClient(selectedKey)
+                    }
+                }
+                if (serverSelector.selectNow() != 0) {
+                    val selectedKeysIterator = serverSelector.selectedKeys().iterator()
+                    while (selectedKeysIterator.hasNext()) {
+                        val selectedKey = selectedKeysIterator.next()
+                        selectedKeysIterator.remove()
+                        if (!selectedKey.isValid) continue
+                        if (selectedKey.isAcceptable) acceptClient(selectedKey)
+                        if (selectedKey.isReadable) readClientPacket(selectedKey)
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -146,7 +164,11 @@ object ChatServer : Runnable, Closeable {
         NotificationOutput.write("Sending a $packet packet to a client @ ${socket().remoteSocketAddress}.")
         byteBuffer.put(packet.toByteArray())
         byteBuffer.flip()
-        write(byteBuffer)
+        var bytesSent = write(byteBuffer)
+        while (bytesSent != 0) {
+            Thread.sleep(4)
+            bytesSent = write(byteBuffer)
+        }
         byteBuffer.clear()
     }
 
@@ -166,7 +188,7 @@ object ChatServer : Runnable, Closeable {
     private fun processClientPacket(clientChannel: SocketChannel, packet: Packet) = when (packet) {
         is ConnectionRequest -> connectClient(clientChannel, packet)
         is MessageSent -> processMessage(clientChannel, packet)
-        is FileSent -> TODO("implementation")
+        is FileSent -> processFile(clientChannel, packet)
         else -> Unit // ignoring all the other packets silently
     }
 
@@ -193,14 +215,78 @@ object ChatServer : Runnable, Closeable {
             )
             return
         }
+
         val message = messageSent.message
         NotificationOutput.write("\"$username\" @ ${clientChannel.socket().remoteSocketAddress} sent a message \"$message\".")
+
         val messageNotification = MessageNotification(timestamp, username, message)
         clients.forEach { (clientToNotifyChannel, clientToNotifyUsername) ->
             if (clientToNotifyUsername == null) return@forEach
             clientToNotifyChannel.writePacket(messageNotification)
         }
         NotificationOutput.write("The incoming message notification was sent to all named clients.")
+    }
+
+    private fun processFile(clientChannel: SocketChannel, fileSent: FileSent) {
+        val timestamp = OffsetDateTime.now()
+        val username = clients[clientChannel]
+        if (username == null) {
+            NotificationOutput.write(
+                "An unnamed client @ ${clientChannel.socket().remoteSocketAddress} sent a file. It will be ignored."
+            )
+            return
+        }
+
+        val filename = fileSent.filename
+        val file = fileSent.file
+        NotificationOutput.write("\"$username\" @ ${clientChannel.socket().remoteSocketAddress} sent a file \"$filename\".")
+
+        val fileTransmissionServerSocketChannel = ServerSocketChannel.open()
+        fileTransmissionServerSocketChannel.configureBlocking(false)
+        fileTransmissionServerSocketChannel.bind(InetSocketAddress(serverAddress.address, 0))
+        fileTransmissionServerSocketChannel.register(fileTransmissionServerSelector, SelectionKey.OP_ACCEPT)
+        val fileNotification = FileNotification(timestamp, username, filename, file)
+        val notificationTimeout = OffsetDateTime.now().plusMinutes(2)
+        activeFileTransmissions[fileTransmissionServerSocketChannel] = notificationTimeout to fileNotification
+        NotificationOutput.write(
+            "${fileTransmissionServerSocketChannel.socket().localSocketAddress} is now listening for \"$filename\" transmissions."
+        )
+
+        val fileNotificationPending = FileNotificationPending(
+            fileTransmissionServerSocketChannel.socket().localPort,
+            notificationTimeout
+        )
+        clients.forEach { (clientToNotifyChannel, clientToNotifyUsername) ->
+            if (clientToNotifyUsername == null || clientToNotifyUsername == username) return@forEach
+            clientToNotifyChannel.writePacket(fileNotificationPending)
+        }
+        NotificationOutput.write("The incoming file notification was sent to all named clients.")
+    }
+
+    private fun acceptFileTransmissionClient(key: SelectionKey) {
+        try {
+            val fileTransmissionServerSocketChannel = key.channel() as ServerSocketChannel
+
+            val relevantFileTransmission = activeFileTransmissions[fileTransmissionServerSocketChannel]
+            checkNotNull(relevantFileTransmission) { "A port was opened without assigning a file transmission to it" }
+
+            NotificationOutput.write("A file transmission accept event was received.")
+            fileTransmissionServerSocketChannel.accept()?.let { fileTransmissionClientChannel ->
+                fileTransmissionClientChannel.configureBlocking(false)
+                fileTransmissionClientChannel.register(fileTransmissionServerSelector, SelectionKey.OP_READ)
+                fileTransmissionClientChannel.writePacket(relevantFileTransmission.fileNotification)
+            } ?: run {
+                WarningOutput.write("A received file transmission accept event turned out to be false.")
+            }
+        } catch (e: IOException) {
+            WarningOutput.write("A file transmission client wasn't served properly (see exception stacktrace).")
+            e.printStackTrace()
+        }
+    }
+
+    private fun disconnectFileTransmissionClient(key: SelectionKey) {
+        NotificationOutput.write("A file transmission read event was received. Closing the corresponding connection ...")
+        (key.channel() as SocketChannel).close()
     }
 
     private var isClosed = false
@@ -215,6 +301,14 @@ object ChatServer : Runnable, Closeable {
                 if (channel is SocketChannel) clients.remove(channel)
             }
             serverSelector.close()
+        }
+        if (fileTransmissionServerSelector.isOpen) {
+            fileTransmissionServerSelector.keys().forEach {
+                val channel = it.channel()
+                channel.close()
+                if (channel is ServerSocketChannel) activeFileTransmissions.remove(channel)
+            }
+            fileTransmissionServerSelector.close()
         }
     }
 
