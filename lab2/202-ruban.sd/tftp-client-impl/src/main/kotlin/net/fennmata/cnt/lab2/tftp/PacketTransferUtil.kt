@@ -6,9 +6,19 @@ import java.net.InetAddress
 
 private val byteBuffer = ByteArray(1024)
 
-fun DatagramSocket.readPacket(host: InetAddress, port: Int): TFTPPacket {
+fun DatagramSocket.readPacket(
+    host: InetAddress,
+    port: Int? = null,
+    processPacket: ((DatagramPacket) -> Unit)? = null
+): TFTPPacket {
     val datagramPacket = DatagramPacket(byteBuffer, byteBuffer.size)
-    receive(datagramPacket)
+    while (true) {
+        receive(datagramPacket)
+        val isHostValid = host == datagramPacket.address
+        val isPortValid = port == null || port == datagramPacket.port
+        if (isHostValid && isPortValid) break
+    }
+    if (processPacket != null) processPacket(datagramPacket)
     return byteBuffer.sliceArray(0 until datagramPacket.length).toTFTPPacket()
 }
 

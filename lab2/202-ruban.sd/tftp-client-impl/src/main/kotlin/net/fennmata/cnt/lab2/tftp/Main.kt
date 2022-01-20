@@ -1,13 +1,46 @@
 package net.fennmata.cnt.lab2.tftp
 
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.net.DatagramSocket
 import java.net.InetAddress
 
-val udpSocket = DatagramSocket()
+val udpSocket = DatagramSocket().apply { soTimeout = 2000 }
 
 fun writeFile(host: InetAddress, file: File, mode: TransmissionMode) {
-    TODO()
+    udpSocket.writePacket(
+        Request(RequestType.WRITE, file.name, mode),
+        host, 69
+    )
+
+    var port = 0
+    val answer = repeatUntil({ it is Acknowledgement || it is Error }) {
+        udpSocket.readPacket(host) { port = it.port }
+    }
+    if (answer is Error) throw IllegalStateException(
+        "server has answered with ${answer.code}: ${answer.message}"
+    )
+
+    var blockNumber: Short = 1
+    val fileStream = when (mode) {
+        TransmissionMode.NETASCII -> ByteArrayInputStream(file.readText().toASCII())
+        TransmissionMode.OCTET -> file.inputStream()
+    }
+    repeatUntil({ it.size < 512 }) {
+        val bytes = fileStream.readNBytes(512)
+
+        val dataBlock = DataBlock(blockNumber, bytes)
+        udpSocket.repeatUntilFinishes {
+            writePacket(dataBlock, host, port)
+            repeatUntil({ it is Acknowledgement && it.number == blockNumber }) {
+                readPacket(host, port)
+            }
+            Unit
+        }
+        ++blockNumber
+
+        bytes
+    }
 }
 
 fun readFile(host: InetAddress, file: File, mode: TransmissionMode) {
@@ -29,7 +62,7 @@ fun main(arguments: Array<String>) {
         ?: TransmissionMode.OCTET
 
     when (command) {
-        RequestType.WRITE -> writeFile(host, file, mode)
         RequestType.READ -> readFile(host, file, mode)
+        RequestType.WRITE -> writeFile(host, file, mode)
     }
 }
