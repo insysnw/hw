@@ -20,12 +20,10 @@ fun ByteArray.split(delimiter: Byte): List<ByteArray> {
     return result
 }
 
-fun DatagramSocket.repeatUntilFinishes(action: DatagramSocket.() -> Unit) {
-    var didSocketTimeout = true
-    while (didSocketTimeout) {
+fun <T> DatagramSocket.repeatUntilFinishes(action: DatagramSocket.() -> T): T {
+    while (true) {
         try {
-            action()
-            didSocketTimeout = false
+            return action()
         } catch (e: SocketTimeoutException) {
             // ignore and go repeat action
         }

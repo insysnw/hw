@@ -13,3 +13,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
 }
+
+tasks.jar {
+    manifest.attributes["Main-Class"] = "net.fennmata.cnt.lab2.tftp.MainKt"
+}
