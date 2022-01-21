@@ -43,7 +43,7 @@
 | Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |
 | Likholetov.MD |    |    |        |        |          |          |
 | Lunyak.NA     | +  | +  | TFTP + | DHCP + | 1.2.10 + | 1.2.20 + |
-| Ruban.SD      | +  | +  | DHCP   | TFTP + | 1.2.20   | 1.2.10   |
+| Ruban.SD      | +  | +  | DHCP + | TFTP + | 1.2.20   | 1.2.10   |
 | Samsonov.SI   |    |    |        |        |          |          |
 | Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
 | Sherepa.NM    | +  | +  |        |        |          |          |
