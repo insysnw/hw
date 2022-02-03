@@ -44,9 +44,9 @@
 | Likholetov.MD |    |    |        |        |          |          |
 | Lunyak.NA     | +  | +  | TFTP + | DHCP + | 1.2.10 + | 1.2.20 + |
 | Ruban.SD      | +  | +  | DHCP + | TFTP + | 1.2.20   | 1.2.10   |
-| Samsonov.SI   | +  |    | TFTP + | SNMP   |          |          |
+| Samsonov.SI   | +  |    | TFTP + | SNMP   | 1.2.19   | 1.2.8    |
 | Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
-| Sherepa.NM    | +  | +  | DNS ?  | TFTP ? |          |          |
+| Sherepa.NM    | +  | +  | DNS ?  | TFTP ? | 1.2.8    | 1.2.19   |
 | Smirnov.LD    |    |    |        |        |          |          |
 | Smirnov.NV    | +  | +  |        |        |          |          |
 | Sukhachev.NA  | +  | +  | TFTP + | NTP +  | 1.2.14 + | 1.2.11 + |
