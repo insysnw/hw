@@ -36,7 +36,7 @@
 
 | Student       | 1a | 1b | 2 srvr | 2 clnt | 3 srvr   | 3 clnt   |
 | --            | -- | -- | --     | --     | --       | --       |
-| Chernyshev.YN |    |    |        |        |          |          |
+| Chernyshev.YN | +  | +  |        |        |          |          |
 | Fedorov.SA    | +  | +  | NTP +  | TFTP + |          |          |
 | Keita.AS      | +  | +  | DNS    | SNMP   |          |          |
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  |
