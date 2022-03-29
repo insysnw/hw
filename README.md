@@ -36,18 +36,18 @@
 
 | Student       | 1a | 1b | 2 srvr | 2 clnt | 3 srvr   | 3 clnt   |
 | --            | -- | -- | --     | --     | --       | --       |
-| Chernyshev.YN | +  | +  |        |        |          |          |
+| Chernyshev.YN | +  | +  | DHCP + | DNS +  |          |          |
 | Fedorov.SA    | +  | +  | NTP +  | TFTP + |          |          |
-| Keita.AS      | +  | +  | DNS    | SNMP   |          |          |
+| Keita.AS      | +  | +  | DNS +  | SNMP   |          |          |
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  |
 | Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |
-| Likholetov.MD |    |    |        |        |          |          |
+| Likholetov.MD | ?  | +  | DHCP   | DNS    |          |          |
 | Lunyak.NA     | +  | +  | TFTP + | DHCP + | 1.2.10 + | 1.2.20 + |
 | Ruban.SD      | +  | +  | DHCP + | TFTP + | 1.2.20   | 1.2.10   |
-| Samsonov.SI   | +  | +  | TFTP + | SNMP + | 1.2.19   | 1.2.8    |
+| Samsonov.SI   | +  | +  | TFTP + | SNMP + | 1.2.19   | 1.2.8 +  |
 | Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
-| Sherepa.NM    | +  | +  | DNS +  | TFTP + | 1.2.8    | 1.2.19   |
-| Smirnov.LD    |    |    |        |        |          |          |
-| Smirnov.NV    | +  | +  |        |        |          |          |
+| Sherepa.NM    | +  | +  | DNS +  | TFTP + | 1.2.8 +  | 1.2.19   |
+| Smirnov.LD    | +  | ?  |        |        |          |          |
+| Smirnov.NV    | +  | +  | SNMP + | DHCP + |          |          |
 | Sukhachev.NA  | +  | +  | TFTP + | NTP +  | 1.2.14 + | 1.2.11 + |
 | Tkachenko.DYU | +  | +  | NTP +  | DNS +  | 1.2.5 +  | 1.2.6 +  |
