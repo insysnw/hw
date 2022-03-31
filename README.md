@@ -47,7 +47,7 @@
 | Samsonov.SI   | +  | +  | TFTP + | SNMP + | 1.2.19   | 1.2.8 +  |
 | Savelev.DM    | +  | +  | DHCP + | NTP +  |          |          |
 | Sherepa.NM    | +  | +  | DNS +  | TFTP + | 1.2.8 +  | 1.2.19   |
-| Smirnov.LD    | +  | ?  |        |        |          |          |
+| Smirnov.LD    | +  | +  | NTP    | DHCP   |          |          |
 | Smirnov.NV    | +  | +  | SNMP + | DHCP + |          |          |
 | Sukhachev.NA  | +  | +  | TFTP + | NTP +  | 1.2.14 + | 1.2.11 + |
 | Tkachenko.DYU | +  | +  | NTP +  | DNS +  | 1.2.5 +  | 1.2.6 +  |
