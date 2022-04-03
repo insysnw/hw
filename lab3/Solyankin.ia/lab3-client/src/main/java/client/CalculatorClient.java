@@ -1,7 +1,7 @@
 package client;
 
 import client.http.HttpHandler;
-import client.resources.Parts;
+import client.model.CalculatorRequest;
 import client.resources.Phrases;
 
 import java.io.BufferedReader;
@@ -37,9 +37,9 @@ public class CalculatorClient {
                         System.exit(-1);
                 }
 
-                Parts parts = getParts(line);
-                if (parts.getOperands().size() != 0) {
-                    handler.httpPostRequest(parts);
+                CalculatorRequest calculatorRequest = getParts(line);
+                if (calculatorRequest.getOperands().size() != 0) {
+                    handler.httpPostRequest(calculatorRequest);
                 } else {
                     System.out.println(Phrases.CLIENT_INCORRECT_EXPRESSION_ERROR.getPhrase());
                 }
@@ -50,14 +50,14 @@ public class CalculatorClient {
     }
 
 
-    private Parts getParts(String line) {
+    private CalculatorRequest getParts(String line) {
         ArrayList<String> operands = new ArrayList<>();
         String operator = "";
         if (line.contains(Phrases.FACT_COMMAND.getPhrase())) {
-            operator = Phrases.FACT_COMMAND.getPhrase();
+            operator = Phrases.FACT_COMMAND.getPhrase().toUpperCase();
             operands = parseLine(line, Phrases.FACT_COMMAND);
         } else if (line.contains(Phrases.SQRT_COMMAND.getPhrase())) {
-            operator = Phrases.SQRT_COMMAND.getPhrase();
+            operator = Phrases.SQRT_COMMAND.getPhrase().toUpperCase();
             operands = parseLine(line, Phrases.SQRT_COMMAND);
         } else {
             int count = 0;
@@ -66,21 +66,40 @@ public class CalculatorClient {
             Matcher matcher = pattern.matcher(line);
             while (matcher.find()) {
                 if (count++ == 0) {
-                    operator = matcher.group();
+                    operator = getOperator(matcher.group());
                     try {
-                        operands.add(BigDecimal.valueOf(Long.parseLong(line.substring(0, matcher.end() - 1))).toString());
-                        operands.add(BigDecimal.valueOf(Long.parseLong(line.substring(matcher.end()))).toString());
+                        operands.add(new BigDecimal(line.substring(0, matcher.end() - 1)).toString());
+                        operands.add(new BigDecimal(line.substring(matcher.end())).toString());
                     } catch (NumberFormatException e) {
                         operands = new ArrayList<>();
-                        return new Parts(operands, operator);
+                        return new CalculatorRequest(operands, operator);
                     }
                 } else {
                     operands = new ArrayList<>();
-                    return new Parts(operands, operator);
+                    return new CalculatorRequest(operands, operator);
                 }
             }
         }
-        return new Parts(operands, operator);
+        return new CalculatorRequest(operands, operator);
+    }
+
+    private String getOperator(String operator) {
+        String result = "";
+        switch (operator) {
+            case "+":
+                result = "PLUS";
+                break;
+            case "-":
+                result = "MINUS";
+                break;
+            case "*":
+                result = "MULT";
+                break;
+            case "/":
+                result = "DIV";
+                break;
+        }
+        return result;
     }
 
     private ArrayList<String> parseLine(String line, Phrases phrase) {
@@ -90,7 +109,7 @@ public class CalculatorClient {
         Matcher matcherNumbers = patternFact.matcher(line);
         while (matcherNumbers.find()) {
             try {
-                result.add(BigDecimal.valueOf(Long.parseLong(line.substring(matcherNumbers.end() + 1, line.length() - 1))).toString());
+                result.add(new BigDecimal(line.substring(matcherNumbers.end() + 1, line.length() - 1)).toString());
             } catch (NumberFormatException e) {
                 break;
             }
