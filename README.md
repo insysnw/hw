@@ -35,7 +35,7 @@
 ## 202
 
 | Student       | 1a | 1b | 2 srvr | 2 clnt | 3 srvr   | 3 clnt   | http |
-| --            | -- | -- | --     | --     | --       | --       | __   |
+| --            | -- | -- | --     | --     | --       | --       | --   |
 | Chernyshev.YN | +  | +  | DHCP + | DNS +  |          |          |      |
 | Fedorov.SA    | +  | +  | NTP +  | TFTP + |          |          |      |
 | Keita.AS      | +  | +  | DNS +  | SNMP   |          |          |      |
