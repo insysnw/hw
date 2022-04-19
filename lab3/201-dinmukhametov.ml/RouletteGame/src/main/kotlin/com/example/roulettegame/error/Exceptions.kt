@@ -20,3 +20,6 @@ class UserIsNotCroupierException(override val message: String = "") : RuntimeExc
 
 @ResponseStatus(code = HttpStatus.BAD_REQUEST, reason = "The Game is not exist")
 class GameNotExistException(override val message: String = "") : RuntimeException()
+
+@ResponseStatus(code = HttpStatus.BAD_REQUEST, reason = "Illegal number exception")
+class IllegalNumException(override val message: String = "") : RuntimeException()
