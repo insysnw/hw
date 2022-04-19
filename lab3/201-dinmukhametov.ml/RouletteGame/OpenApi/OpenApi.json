@@ -1,0 +1,84 @@
+  /login:
+    get:
+      summary: "GET login"
+      operationId: "login"
+      parameters:
+      - name: "login"
+        in: "query"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+---
+  /logout:
+    post:
+      summary: "POST logout"
+      operationId: "logout"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+---
+  /game/createBet:
+    post:
+      summary: "POST game/createBet"
+      operationId: "createBet"
+      parameters:
+      - name: "sum"
+        in: "query"
+        required: true
+        schema:
+          type: "number"
+          format: "double"
+      - name: "betTypeEnum"
+        in: "query"
+        required: true
+      - name: "Authorization"
+        in: "header"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+---
+  /game/info:
+    get:
+      summary: "GET game/info"
+      operationId: "info"
+      parameters:
+      - name: "numberGame"
+        in: "query"
+        required: true
+        schema:
+          type: "number"
+          format: "int32"
+      - name: "Authorization"
+        in: "header"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+---
+  /game/start:
+    post:
+      summary: "POST game/start"
+      operationId: "start"
+      parameters:
+      - name: "Authorization"
+        in: "header"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
