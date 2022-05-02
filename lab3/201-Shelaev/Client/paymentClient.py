@@ -132,7 +132,7 @@ class PaymentClient():
         account = input('\t Please, enter the amount You want to transfer > ').strip()
         try:
             from_wallet_int = int(from_wallet)
-            account_double = float(account)
+            account_double = abs(float(account))
         except ValueError:
             print('\n ERROR: Incorrect input')
             return

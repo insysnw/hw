@@ -1,0 +1,327 @@
+openapi: 3.0.3
+info:
+  title: Payment system
+  description: API for payment system
+  version: 0.1.1
+servers:
+   - url: http://127.0.0.1:8080
+     description: Main server
+paths:
+  /login:
+    post:
+      summary: User login to the system
+      description: Check the user's login and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  description: User's login
+                  type: string
+                  example: admin
+                password:
+                  description: Hash of user's password
+                  type: string
+                  example: 1234567890abcdef
+      responses:
+        '200':
+          description: Login and password are correct
+          content:
+            application/json:
+              schema:
+                type: string
+                description: User's login
+                example: admin
+        '403':
+          description: The method is prohibited, there is not enough data (login and/or password)
+        '404':
+          description: Incorrect login and/or password
+        default:
+          description: Unexpected error
+  /logout:
+    post:
+      security:
+        - BasicAuth: []
+      summary: Correct user logout
+      description: User logout from the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              description: User's login
+              example: admin
+      responses:
+        '200':
+          description: The user has successfully logged out
+          content:
+            application/json:
+              schema:
+                type: string
+                description: User's login
+                example: admin
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: The method is prohibited, there is not enough data (login)
+        default:
+          description: Unexpected error
+  /create/client/:
+    post:
+      summary: Adding a new user to the system
+      description: Checking that a user with such a login is not in the system
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  description: User's login
+                  type: string
+                  example: admin
+                password:
+                  description: Hash of user's password
+                  type: string
+                  example: 1234567890abcdeff
+      responses:
+        '201':
+          description: The new user has successfully created
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: New wallet number
+                example: 201
+                minimum: 0
+        '403':
+          description: The method is prohibited, there is not enough data (login and/or password)
+        default:
+          description: Unexpected error
+  /create/wallet/:
+    post:
+      security:
+        - BasicAuth: []
+      summary: Adding a new wallet to the user
+      description: The user get a new wallet with a value of 0.0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: string
+              description: User's login
+              example: admin
+      responses:
+        '201':
+          description: The new wallet has successfully created
+          content:
+            application/json:
+              schema:
+                type: integer
+                description: New wallet number
+                example: 201
+                minimum: 0
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: The method is prohibited, there is not enough data (login and/or password)
+        default:
+          description: Unexpected error
+  /get/wallets/:
+    get:
+      security:
+        - BasicAuth: []
+      summary: List of user wallets
+      description: The user gets a list of all his wallets
+      parameters:
+        - name: login
+          in: query
+          required: true
+          description: User's login
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The list of wallets was received successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                description: List of wallet numbers
+                example: [255, 501]
+                items: 
+                  type: integer
+                  minimum: 0
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: The method is prohibited, there is not enough data (login)
+        '404':
+          description: There is no user with this login
+        default:
+          description: Unexpected error
+  /get/wallet/{wallet_number}:
+    get:
+      security:
+        - BasicAuth: []
+      summary: The value of the selected wallet
+      description: The user is shown the value of the wallet he has selected
+      parameters:
+        - name: wallet_number
+          in: path
+          required: true
+          description: Wallet number
+          schema:
+            type: integer
+        - name: login
+          in: query
+          required: true
+          description: User's login
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The wallet value was successfully received
+          content:
+            application/json:
+              schema:
+                type: number
+                description: Account of the wallet 
+                example: 1200.0
+                minimum: 0.0
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: The method is prohibited, there is not enough data (login and/or password)
+        '404':
+          description: There is no user with this login and/or no wallet with this wallet number
+        default:
+          description: Unexpected error
+  /create/payment/:
+    post:
+      security:
+        - BasicAuth: []
+      summary: Transfer from one wallet to another
+      description: Checking the existence of the wallet and its value
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                login:
+                  description: User's login
+                  type: string
+                  example: admin
+                wallet:
+                  description: The number of the wallet from which the transfer will be made
+                  type: integer
+                  example: 201
+                  minimum: 0
+                sum:
+                  description: Transfer amount
+                  type: number
+                  example: 1000.0
+                  minimum: 0.0
+      responses:
+        '201':
+          description: OK. The transfer requires confirmation from the user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    description: The number of the wallet from which the transfer will be made
+                    type: integer
+                    example: 201
+                    minimum: 0
+                  account:
+                    description: Previous wallet value
+                    type: number
+                    example: 1200.0
+                    minimum: 0.0
+                  new_account:
+                    description: Future value of the wallet
+                    type: number
+                    example: 200.0
+                    minimum: 0.0
+        '400':
+          description: The value of the selected wallet will be less than 0.0
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: The method is prohibited, there is not enough data (login and/or wallet and/or sum)
+        '404':
+          description: There is no user with this login and/or no wallet with this wallet number
+        default:
+          description: Unexpected error
+  /create/payment/transfer/:
+    post:
+      security:
+        - BasicAuth: []
+      summary: Transfer confirmation
+      description: The user confirms the transfer and indicates the wallet number where to transfer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from_wallet:
+                  description: The number of the wallet from which the transfer will be made
+                  type: integer
+                  example: 201
+                  minimum: 0
+                to_wallet:
+                  description: The number of the wallet where to transfer will be made
+                  type: integer
+                  example: 555
+                  minimum: 0
+                sum:
+                  description: Transfer amount
+                  type: number
+                  example: 1000.0
+                  minimum: 0.0
+      responses:
+        '201':
+          description: The transfer was completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    description: The number of the wallet from which the transfer was made
+                    type: integer
+                    example: 201
+                    minimum: 0
+                  account:
+                    description: The current value of the wallet after the completed transfer
+                    type: number
+                    example: 200.0
+                    minimum: 0.0
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: The method is prohibited, there is not enough data (from_wallet and/or to_wallet and/or sum)
+        '404':
+          description: There is no wallet with from_wallet number and/or no wallet with to_wallet number
+        default:
+          description: Unexpected error
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+  responses:
+    UnauthorizedError:
+      description: Authentication information is missing or invalid
