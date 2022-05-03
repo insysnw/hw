@@ -1,0 +1,21 @@
+
+# Cache
+__pycache__/
+
+# Distribution / packaging
+.vs/
+*.pyproj
+*.sln
+
+# Unit test
+.cache
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Logs
+*.log
