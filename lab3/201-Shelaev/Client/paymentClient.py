@@ -80,8 +80,8 @@ class PaymentClient():
         conn = requests.get(self.URL + '/get/wallets/', data = json.dumps({'login': login}), 
                             auth = HTTPBasicAuth(login, password), headers = self.HEADER)
         if   conn.status_code == 200:
-            wallets = conn.json()['wallets']
-            print(f'\n Your wallets: {wallets}')
+            wallets = ', '.join(map(str, conn.json()['wallets']))
+            print('\n Your wallets: ' + wallets)
             return wallets
         elif conn.status_code == 403:
             print('\n ERROR: Incorrect request')
@@ -94,7 +94,7 @@ class PaymentClient():
         wallet_number = input('\n\t Please, enter Your wallet number (default: all) > ').strip()
         wallets = []
         try:
-            wallet_number_int = int(wallet_number)
+            wallet_number_int = abs(int(wallet_number))
             wallets.append(wallet_number_int)
         except ValueError:
             wallets = self.getWallets(login, password)
@@ -131,7 +131,7 @@ class PaymentClient():
         from_wallet = input('\n\t Please, enter Your wallet number (transfer from) > ').strip()
         account = input('\t Please, enter the amount You want to transfer > ').strip()
         try:
-            from_wallet_int = int(from_wallet)
+            from_wallet_int = abs(int(from_wallet))
             account_double = abs(float(account))
         except ValueError:
             print('\n ERROR: Incorrect input')
@@ -151,7 +151,7 @@ class PaymentClient():
                 return
             to_wallet = input('\n\t Please, enter wallet number (transfer to) > ').strip()
             try:
-                to_wallet_int = int(to_wallet)
+                to_wallet_int = abs(int(to_wallet))
             except ValueError:
                 print('\n ERROR: Incorrect input')
                 return
