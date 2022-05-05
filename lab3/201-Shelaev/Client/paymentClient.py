@@ -36,8 +36,10 @@ class PaymentClient():
                              auth = HTTPBasicAuth(login, password), headers = self.HEADER)
         if   conn.status_code == 200:
             print('\n OK: You have successfully logged out')
+        elif conn.status_code == 401:
+            print('\n ERROR: Incorrect login and/or password')
         elif conn.status_code == 403:
-            print('\n ERROR: Incorrect request')
+            print('\n ERROR: Incorrect request, try again')
         else:
             print(f'\n ERROR: {conn.status_code}')
 
@@ -51,7 +53,7 @@ class PaymentClient():
             print('\n OK: You have successfully logged in')
             return (login, password_hash)
         elif response.status == 403:
-            print('\n ERROR: Incorrect request')
+            print('\n ERROR: Incorrect request, try again')
         elif response.status == 404:
             print('\n ERROR: Incorrect login and/or password')
         else:
@@ -69,22 +71,27 @@ class PaymentClient():
             print(f'\n Your new wallet {wallet} with a value of 0')
             return (login, password_hash)
         elif response.status == 403:
-            print('\n ERROR: Incorrect request')
+            print('\n ERROR: Incorrect request, try again')
         elif response.status == 400:
             print('\n ERROR: This login is already occupied, choose another one')
         else:
             print(f'\n ERROR: {conn.status_code}')
         return (login, 'password')
 
-    def getWallets(self, login, password):
+    def getWallets(self, login, password, flag = True):
         conn = requests.get(self.URL + '/get/wallets/', data = json.dumps({'login': login}), 
                             auth = HTTPBasicAuth(login, password), headers = self.HEADER)
         if   conn.status_code == 200:
-            wallets = ', '.join(map(str, conn.json()['wallets']))
-            print('\n Your wallets: ' + wallets)
+            wallets = conn.json()['wallets']
+            if flag:
+                wallet_str = ', '.join(map(str, wallets))
+                print('\n Your wallets: ' + wallet_str)
+                return
             return wallets
+        elif conn.status_code == 401:
+            print('\n ERROR: Incorrect login and/or password')
         elif conn.status_code == 403:
-            print('\n ERROR: Incorrect request')
+            print('\n ERROR: Incorrect request, try again')
         elif conn.status_code == 404:
             print('\n ERROR: There is no user with this login, try again')
         else:
@@ -97,7 +104,7 @@ class PaymentClient():
             wallet_number_int = abs(int(wallet_number))
             wallets.append(wallet_number_int)
         except ValueError:
-            wallets = self.getWallets(login, password)
+            wallets = self.getWallets(login, password, False)
         print('')
         for wallet_num in wallets:
             conn = requests.get(self.URL + f'/get/wallet/{wallet_num}', data = json.dumps({'login': login}), 
@@ -106,8 +113,10 @@ class PaymentClient():
                 account = conn.json()['account']
                 print(f' In the wallet {wallet_num} You have {account}')
                 continue
+            elif conn.status_code == 401:
+                print('\n ERROR: Incorrect login and/or password')
             elif conn.status_code == 403:
-                print(' ERROR: Incorrect request')
+                print(' ERROR: Incorrect request, try again')
             elif conn.status_code == 404:
                 print(' ERROR: There is no user with this login and/or no wallet with this number, try again')
             else:
@@ -120,8 +129,10 @@ class PaymentClient():
         if   conn.status_code == 201:
             wallet = conn.json()['wallet']
             print(f'\n Your new wallet: {wallet} with 0')
+        elif conn.status_code == 401:
+            print('\n ERROR: Incorrect login and/or password')
         elif conn.status_code == 403:
-            print('\n ERROR: Incorrect request')
+            print('\n ERROR: Incorrect request, try again')
         elif conn.status_code == 404:
             print('\n ERROR: There is no user with this login, try again')
         else:
@@ -132,7 +143,7 @@ class PaymentClient():
         account = input('\t Please, enter the amount You want to transfer > ').strip()
         try:
             from_wallet_int = abs(int(from_wallet))
-            account_double = abs(float(account))
+            account_double = float(account)
         except ValueError:
             print('\n ERROR: Incorrect input')
             return
@@ -163,8 +174,10 @@ class PaymentClient():
             print(f"\n The transfer was completed! Your wallet {result['wallet']} has become {result['account']}")
         elif conn.status_code == 400:
             print('\n ERROR: The amount to transfer exceeds the value on your wallet')
+        elif conn.status_code == 401:
+            print('\n ERROR: Incorrect login and/or password')
         elif conn.status_code == 403:
-            print('\n ERROR: Incorrect request')
+            print('\n ERROR: Incorrect request, try again')
         elif conn.status_code == 404:
             print('\n ERROR: There is no user with this login and/or no wallet with this number, try again')
         else:

@@ -36,12 +36,13 @@ def create_payment(login, wallet, account):
         account_double = round(float(account), 3)
     except ValueError:
         return
-    if not (client and wallet_number in client[0]['wallets']):
+    if not (client and wallet_number in client[0]['wallets'] and wallet_number in ACCOUNTS.keys()):
         return
-    new_account = ACCOUNTS[wallet_number] - account_double
+    last_account = ACCOUNTS[wallet_number]
+    new_account = last_account - account_double
     if new_account < 0:
         return -1
-    return (wallet_number, account_double, new_account)
+    return (wallet_number, last_account, new_account)
 
 def do_transfer(from_wallet, to_wallet, account):
     try:
