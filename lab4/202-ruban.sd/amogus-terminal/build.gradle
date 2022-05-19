@@ -1,0 +1,29 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm" version '1.6.21'
+    id "org.jlleitschuh.gradle.ktlint" version "10.2.0"
+    id "com.github.johnrengelman.shadow" version "6.1.0"
+}
+
+group 'net.fennmata'
+
+wrapper {
+    gradleVersion = '6.8.3'
+    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
+}
+
+repositories {
+    maven { url "https://repo1.maven.org/maven2" }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.21"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.6.21"
+    implementation "com.squareup.moshi:moshi-kotlin:1.12.0"
+    implementation "com.squareup.moshi:moshi-adapters:1.12.0"
+    implementation "com.squareup.okhttp3:okhttp:4.9.1"
+    testImplementation "io.kotlintest:kotlintest-runner-junit5:3.4.2"
+}

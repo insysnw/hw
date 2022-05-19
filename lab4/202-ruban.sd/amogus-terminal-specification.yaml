@@ -1,0 +1,192 @@
+swagger: "2.0"
+
+info:
+  description: "This is an OpenAPI version of the [Amogus Terminal](https://github.com/lunakoly/NetLab3) protocol."
+  version: "1.0.0"
+  title: "Amogus Terminal"
+  contact:
+    email: "lunyak.na@edu.spbstu.ru"
+
+tags:
+  - name: "Main"
+    description: "Main Commands"
+
+schemes:
+  - "http"
+
+securityDefinitions:
+  sus:
+    type: "apiKey"
+    name: "Identity"
+    in: "header"
+
+definitions:
+  Query:
+    type: "object"
+    properties:
+      arguments:
+        type: "array"
+        items:
+          type: "string"
+    required:
+      - arguments
+  Notification:
+    type: "object"
+    properties:
+      message:
+        type: "string"
+    required:
+      - message
+  Role:
+    type: "object"
+    properties:
+      title:
+        type: "string"
+      allowed_commands:
+        type: "array"
+        items:
+          type: "string"
+    required:
+      - title
+      - allowed_commands
+  FilesList:
+    type: "object"
+    properties:
+      files:
+        type: "array"
+        items:
+          type: "string"
+    required:
+      - files
+  UsersList:
+    type: "object"
+    properties:
+      users:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            user:
+              type: "string"
+            location:
+              type: "string"
+          required:
+            - user
+            - location
+    required:
+      - users
+  MoveTo:
+    type: "object"
+    properties:
+      location:
+        type: "string"
+    required:
+      - location
+  KillResult:
+    type: "object"
+    properties:
+      killed_users_count:
+        type: "integer"
+        format: "uint32"
+    required:
+      - killed_users_count
+
+paths:
+  /user/new:
+    get:
+      tags:
+        - "Main"
+      summary: "Get the initial user context"
+      operationId: "getNewUser"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      responses:
+        "400":
+          description: "Your request is junk"
+        "200":
+          description: "Here is the default identity"
+          schema:
+            type: "object"
+            properties:
+              role:
+                $ref: "#/definitions/Role"
+              location:
+                $ref: "#/definitions/MoveTo"
+              identity:
+                type: "string"
+            required:
+              - role
+              - location
+              - identity
+  /user/me:
+    get:
+      tags:
+        - "Main"
+      summary: "Returns your status"
+      operationId: "getMyself"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      responses:
+        "400":
+          description: "Your request is junk"
+        "200":
+          description: "Here is your status"
+          schema:
+            type: "object"
+            properties:
+              is_alive:
+                type: "boolean"
+            required:
+              - is_alive
+  /query:
+    post:
+      tags:
+        - "Main"
+      summary: "Run a command"
+      operationId: "postQuery"
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "body"
+          name: "Request Body"
+          description: "The command line to run"
+          required: true
+          schema:
+            $ref: "#/definitions/Query"
+      responses:
+        "400":
+          description: "Your request is junk"
+        "500":
+          description: "You are dead"
+        "206":
+          description: "Some random information"
+          schema:
+            $ref: "#/definitions/Notification"
+        "201":
+          description: "Here is a new role for you"
+          schema:
+            $ref: "#/definitions/Role"
+        "202":
+          description: "Here are the files"
+          schema:
+            $ref: "#/definitions/FilesList"
+        "203":
+          description: "Here are your crewmates"
+          schema:
+            $ref: "#/definitions/UsersList"
+        "207":
+          description: "Here is the new location"
+          schema:
+            $ref: "#/definitions/MoveTo"
+        "200":
+          description: "Here is the kill result"
+          schema:
+            $ref: "#/definitions/KillResult"
+      security:
+        - sus: []
