@@ -36,14 +36,14 @@
 
 | Student       | 1a | 1b | 2 srvr | 2 clnt | 3 srvr   | 3 clnt   | http |
 | --            | -- | -- | --     | --     | --       | --       | --   |
-| Chernyshev.YN | +  | +  | DHCP + | DNS +  |          |          |      |
-| Fedorov.SA    | +  | +  | NTP +  | TFTP + |          |          |      |
+| Chernyshev.YN | +  | +  | DHCP + | DNS +  | 1.2.12   |          | +    |
+| Fedorov.SA    | +  | +  | NTP +  | TFTP + |          |          | +    |
 | Keita.AS      | +  | +  | DNS +  | SNMP   |          |          |      |
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  | +    |
 | Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |      |
-| Likholetov.MD | +  | +  | DHCP + | SNMP + |          |          |      |
+| Likholetov.MD | +  | +  | DHCP + | SNMP + | 1.2.11   |          | +    |
 | Lunyak.NA     | +  | +  | TFTP + | DHCP + | 1.2.10 + | 1.2.20 + | +    |
-| Ruban.SD      | +  | +  | DHCP + | TFTP + | 1.2.20   | 1.2.10   |      |
+| Ruban.SD      | +  | +  | DHCP + | TFTP + | 1.2.20   | 1.2.10   | +    |
 | Samsonov.SI   | +  | +  | TFTP + | SNMP + | 1.2.19 + | 1.2.8 +  | +    |
 | Savelev.DM    | +  | +  | DHCP + | NTP +  | 1.2.104  |          | +    |
 | Sherepa.NM    | +  | +  | DNS +  | TFTP + | 1.2.8 +  | 1.2.19 + | +    |
