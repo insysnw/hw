@@ -40,7 +40,7 @@
 | Fedorov.SA    | +  | +  | NTP +  | TFTP + |          |          | +    |
 | Keita.AS      | +  | +  | DNS +  | SNMP   |          |          |      |
 | Kobyzhev.AM   | +  | +  | DNS +  | NTP +  | 1.2.6 +  | 1.2.5 +  | +    |
-| Krynskiy.PN   | +  | +  | TFTP + | DNS +  |          |          |      |
+| Krynskiy.PN   | +  | +  | TFTP + | DNS +  | 1.2.102  |          | +    |
 | Likholetov.MD | +  | +  | DHCP + | SNMP + | 1.2.11   |          | +    |
 | Lunyak.NA     | +  | +  | TFTP + | DHCP + | 1.2.10 + | 1.2.20 + | +    |
 | Ruban.SD      | +  | +  | DHCP + | TFTP + | 1.2.20   | 1.2.10   | +    |
